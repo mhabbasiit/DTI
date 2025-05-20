@@ -15,8 +15,6 @@ from config import (
     INPUT_DIR,
     B0_CORRECTION_FOLDER,
     INPUT_SUBDIR,
-    LOG_DIR,
-    FORCE_REPROCESS,
     B0_CORRECTION,
     NUM_SCANS_PER_SESSION
 )
