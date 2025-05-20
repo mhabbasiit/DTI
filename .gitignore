@@ -1,0 +1,6 @@
+*.zip
+*.tar
+*.gz
+*.err
+*.out
+*.pyc
