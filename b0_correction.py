@@ -25,8 +25,10 @@ from config import setup_fsl_env
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python b0_correction.py <subject_id>")
-        subject_id = sys.argv[1]
         sys.exit(1)
+    else:
+        subject_id = sys.argv[1]
+
     if B0_CORRECTION is None:
         print("configured not to do b0 correction")
         sys.exit(1)
@@ -47,13 +49,16 @@ if __name__ == "__main__":
     assert NUM_SCANS_PER_SESSION == len(blip_up_patterns['json'])
 
     subject_folder = os.path.join(INPUT_DIR,subject_id,INPUT_SUBDIR)
+    if not os.path.exists(B0_CORRECTION_FOLDER):
+        os.mkdir(B0_CORRECTION_FOLDER)
     out_subject_folder = os.path.join(B0_CORRECTION_FOLDER,subject_id)
     if not os.path.exists(out_subject_folder):
         os.mkdir(out_subject_folder)
 
     if B0_CORRECTION=='Topup':
         setup_fsl_env()
-        blip_down_patterns = []
+        
+        blip_down_patterns = {}
         try:
             blip_down_patterns['dwi'] = config.REVERSED_DWI_FILE_PATTERNS
             blip_down_patterns['bval'] = config.REVERSED_BVAL_FILE_PATTERNS
@@ -61,6 +66,8 @@ if __name__ == "__main__":
             blip_down_patterns['json'] = config.REVERSED_JSON_FILE_PATTERNS
         except:
             print('Missing file pattern information for reversed polarity in config')
+        print(blip_up_patterns)
+        print(blip_down_patterns)
         run_topup(subject_folder, out_subject_folder, blip_up_patterns, blip_down_patterns)
     elif B0_CORRECTION=='Fieldmap':
         pass

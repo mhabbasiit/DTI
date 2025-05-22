@@ -20,8 +20,8 @@ import subprocess
 ###############################################################################
 #                         FSL Settings                                #
 ###############################################################################
-FSL_HOME = "/simurgh/u/gustavochau/fsl/share/fsl/"
-FSL_BIN = os.path.join(FSL_HOME,'bin')
+FSL_HOME = "/simurgh/u/gustavochau/fsl"
+FSL_BIN = os.path.join(FSL_HOME,'share/fsl/bin')
 # FreeSurfer environment variables
 FSL_ENV = {
     "FSLOUTPUTTYPE": "NIFTI_GZ",
@@ -33,6 +33,9 @@ def setup_fsl_env():
     Set up FreeSurfer environment variables in the current Python process
     """
     os.environ.update(FSL_ENV)
+    os.system(f". {FSL_HOME}/etc/fslconf/fsl.sh")
+
+
 
 ###############################################################################
 #                         Common/Shared Settings                                #
@@ -44,7 +47,7 @@ def setup_fsl_env():
 # Input/Output directories
 INPUT_DIR = "/simurgh/group/BWM/DTISherlock/hcpdev/imagingcollection01"
 INPUT_SUBDIR = 'unprocessed/Diffusion'
-OUTPUT_DIR = "/simurgh/group/gustavochau/OpenNeuro_processed_new"
+OUTPUT_DIR = "/simurgh/group/gustavochau/HCP-Dev-newprocessed"
 TEMP_DIR = "tmp"
 QC_DIR = os.path.join(OUTPUT_DIR, "QC")
 NUM_SCANS_PER_SESSION = 2
@@ -71,7 +74,7 @@ REVERSED_DWI_FILE_PATTERNS = ['*_dMRI_dir98_PA.nii.gz', '*_dMRI_dir99_PA.nii.gz'
 REVERSED_BVAL_FILE_PATTERNS = ['*_dMRI_dir98_PA.bval', '*_dMRI_dir99_PA.bval']
 REVERSED_BVEC_FILE_PATTERNS = ['*_dMRI_dir98_PA.bvec', '*_dMRI_dir99_PA.bvec']
 REVERSED_JSON_FILE_PATTERNS = ['*_dMRI_dir98_PA.json', '*_dMRI_dir99_PA.json']
-
+B0_CORRECTION_QC_SLICES = [17,40]
 
 ###############################################################################
 #                         Eddy correction settings                            #

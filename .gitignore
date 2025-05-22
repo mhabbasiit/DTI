@@ -4,3 +4,4 @@
 *.err
 *.out
 *.pyc
+*.slurm
