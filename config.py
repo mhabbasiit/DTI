@@ -79,10 +79,11 @@ B0_CORRECTION_QC_SLICES = [17,40]
 ###############################################################################
 #                         Eddy correction settings                            #
 ###############################################################################
+EDDY_CORRECTION_FOLDER = os.path.join(OUTPUT_DIR, "Eddy_correction")
 
-EDDY_CORRECTION = True
 SLICE_TO_SLICE_CORRECTION = True
-BASELINE_SLICE_ORDER = None # Subject to use as template for correction if json file has no info
+BASELINE_SLICE_ORDER_JSON = None # Subject to use as template for correction if json file has no info
+EDDY_CORRECTION_QC_SLICES = [17,40]
 
 
 # ###############################################################################

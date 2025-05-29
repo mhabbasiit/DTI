@@ -2,7 +2,13 @@ import json
 import os
 import numpy as np
 import subprocess
-from utilities import match_file_pattern
+import nibabel as nib
+from utilities import match_file_pattern, gen_qc_image
+
+from config import (
+    FSL_HOME,
+    B0_CORRECTION_QC_SLICES
+)
 
 # ==== Load JSON File ====
 def load_json(json_file):
@@ -12,6 +18,9 @@ def load_json(json_file):
 # ==== Extract Readout Time ====
 def get_readout_time(json_data):
     return json_data.get("TotalReadoutTime", None)
+
+def get_PE_direction(json_data):
+    return json_data.get('PhaseEncodingDirection', None)
 
 # ==== Extract Slice Timing Order ====
 def get_slice_order(json_data):
@@ -59,6 +68,10 @@ def process_topup(subject_folder, correction_subject_folder, blip_up_patterns, b
     bvals_AP_path = match_file_pattern(subject_folder, blip_up_patterns['bval'])
     bvals_PA_path = match_file_pattern(subject_folder, blip_down_patterns['bval'])
 
+    print(f'json_AP_path:{json_AP_path}')
+    print(f'bvals_PA_path:{bvals_PA_path}')
+
+
     json_AP = load_json(json_AP_path)
 
     # Extract readout time & slice order
@@ -96,7 +109,7 @@ def process_topup(subject_folder, correction_subject_folder, blip_up_patterns, b
     # Merge b0 images for TOPUP
     os.system(f"fslmerge -t {b0_all_path} {b0_AP_path} {b0_PA_path}")
 
-    top_up_results_path = os.path.join(correction_subject_folder, f'topup_results_{scan_num}.nii.gz')
+    top_up_results_path = os.path.join(correction_subject_folder, f'topup_results_{scan_num}')
     unwarped_results_path = os.path.join(correction_subject_folder, f'b0_unwarped_{scan_num}.nii.gz')
     # Run TOPUP
     subprocess.run([
@@ -104,17 +117,34 @@ def process_topup(subject_folder, correction_subject_folder, blip_up_patterns, b
             "--config=b02b0.cnf", f"--out={top_up_results_path}", f"--iout={unwarped_results_path}"])
 
     print("TOPUP preprocessing completed!")
+    
+def topup_qc(correction_subject_folder, scan_num):
+    original_image_path = os.path.join(correction_subject_folder, f'b0_all_scan_{scan_num}.nii.gz')
+    unwarped_results_path = os.path.join(correction_subject_folder, f'b0_unwarped_{scan_num}.nii.gz')
+    original_image = nib.load(original_image_path).get_fdata()
+    unwarped_image = nib.load(unwarped_results_path).get_fdata()
 
+    image_series = [original_image, unwarped_image]
+    slices_to_plot = B0_CORRECTION_QC_SLICES
+    image_names = ['Original b0', 'Corrected b0']
+    subject_name = os.path.basename(correction_subject_folder)
+    volumes_to_plot = [0]
+    suptitle = f'B0_correction_qc_scan{scan_num}'
+    gen_qc_image(subject_name, correction_subject_folder, image_series, slices_to_plot, volumes_to_plot, suptitle, image_names, scan_num)
+        
+        
 def run_topup(subject_folder, out_subject_folder, blip_up_patterns, blip_down_patterns):
-    correction_subject_folder = os.path(out_subject_folder)
-    if not os.path.exists(correction_subject_folder):
-        os.mkdir(correction_subject_folder)
+    if not os.path.exists(out_subject_folder):
+        os.mkdir(out_subject_folder)
     num_scans = len(blip_up_patterns['dwi'])
-    for n in num_scans:
+    for n in range(num_scans):
         blip_up_patterns_n = {}
         blip_down_patterns_n = {}
         for k,v in blip_up_patterns.items():
             blip_up_patterns_n[k] = v[n]
         for k,v in blip_down_patterns.items():
             blip_down_patterns_n[k] = v[n]
-        process_topup(subject_folder, correction_subject_folder, blip_up_patterns_n, blip_down_patterns_n, n)
+        process_topup(subject_folder, out_subject_folder, blip_up_patterns_n, blip_down_patterns_n, n)
+        topup_qc(out_subject_folder, n)
+        
+        

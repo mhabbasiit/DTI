@@ -7,7 +7,7 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=32
 #SBATCH --mem=120000M
-#SBATCH --time=1:00:00
+#SBATCH --time=24:00:00
 
 export FSLOUTPUTTYPE=NIFTI_GZ
 
