@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import logging
+from datetime import datetime
 
 def match_file_pattern(subject_folder,pattern):
     pattern_path = os.path.join(subject_folder, pattern)
@@ -46,3 +48,50 @@ def gen_qc_image(subject_name, out_path, image_series, slices_to_plot, volumes_t
     except Exception as e:
         print(f"Failed to save QC image: {str(e)}")
     plt.close()
+
+
+def init_logger(step_name, LOG_DIR, LOG_LEVEL, LOG_FORMAT):
+
+    # Set up logging
+    try:
+        os.makedirs(LOG_DIR, exist_ok=True)
+        log_file = os.path.join(LOG_DIR, f"{step_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+        
+        # First set up console logging
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(LOG_LEVEL)
+        console_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+        
+        # Create logger
+        logger = logging.getLogger(step_name)
+        logger.setLevel(LOG_LEVEL)
+        logger.addHandler(console_handler)
+        
+        # Try to add file handler
+        try:
+            # Check if we can write to the directory
+            test_file = os.path.join(LOG_DIR, "test_write_access.tmp")
+            with open(test_file, 'w') as f:
+                f.write("Test write access")
+            os.remove(test_file)
+            
+            # If we get here, we have write access, so add the file handler
+            file_handler = logging.FileHandler(log_file)
+            file_handler.setLevel(LOG_LEVEL)
+            file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+            logger.addHandler(file_handler)
+            logger.info(f"Logs will be saved to: {log_file}")
+        except (IOError, PermissionError) as e:
+            print(f"Warning: Could not create log file in {LOG_DIR}. Error: {str(e)}")
+            print(f"Logs will only be displayed in the console.")
+    except Exception as e:
+        # Fall back to basic logging if the above fails
+        logging.basicConfig(
+            level=LOG_LEVEL,
+            format=LOG_FORMAT,
+            handlers=[logging.StreamHandler()]
+        )
+        logger = logging.getLogger('synthstrip')
+        logger.error(f"Failed to set up logging properly: {str(e)}")
+        logger.warning("Logs will only be displayed in the console.")
+    return logger
