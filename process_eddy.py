@@ -175,6 +175,9 @@ if __name__ == "__main__":
     if not os.path.exists(out_subject_folder):
         os.mkdir(out_subject_folder)
 
+    setup_fsl_env()
+
+
     b0_correction_folder = os.path.join(B0_CORRECTION_FOLDER,subject_id)
 
     blip_up_patterns = {}

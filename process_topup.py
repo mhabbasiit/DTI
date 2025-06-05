@@ -120,7 +120,7 @@ def process_topup(subject_folder, correction_subject_folder, blip_up_patterns, b
     
 def topup_qc(correction_subject_folder, scan_num):
     original_image_path = os.path.join(correction_subject_folder, f'b0_all_scan_{scan_num}.nii.gz')
-    unwarped_results_path = os.path.join(correction_subject_folder, f'b0_unwarped_{scan_num}.nii.gz')
+    unwarped_results_path = os.path.join(correction_subject_folder, f'b0_unwarped_{scan_num}')
     original_image = nib.load(original_image_path).get_fdata()
     unwarped_image = nib.load(unwarped_results_path).get_fdata()
 

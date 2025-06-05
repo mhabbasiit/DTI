@@ -132,5 +132,7 @@ REG_WITHIN_B0_INPUT_FOLDER = B0_CORRECTION_FOLDER
 REG_WITHIN_INPUT_FOLDER = EDDY_CORRECTION_FOLDER
 REG_WITHIN_OUTPUT_FOLDER = os.path.join(OUTPUT_DIR, "Reg_within_and_merged")
 REG_WITHIN_INPUT_NAMES = None # List of names or if None, will assume output of eddy
+REG_BVEC_INPUT_NAMES = None # List of names or if None, will assume output of eddy
+REG_BVAL_INPUT_NAMES = None # List of names or if None, will assume output of eddy
 REG_WITHIN_B0_INPUT_NAMES = None # List of names or if None, will assume output of Skull stripping step
 REG_WITHIN_OUTPUT_PATTERN =  None # List of names or if None, will use "merged_dwi"
