@@ -125,7 +125,7 @@ BASELINE_SLICE_ORDER_JSON = None # Subject to use as template for correction if 
 EDDY_CORRECTION_QC_SLICES = [17,40]
 
 ###############################################################################
-#                         Registration within scans                           #
+#                         Registration within subject                         #
 ###############################################################################
 
 REG_WITHIN_B0_INPUT_FOLDER = B0_CORRECTION_FOLDER
@@ -136,3 +136,33 @@ REG_BVEC_INPUT_NAMES = None # List of names or if None, will assume output of ed
 REG_BVAL_INPUT_NAMES = None # List of names or if None, will assume output of eddy
 REG_WITHIN_B0_INPUT_NAMES = None # List of names or if None, will assume output of Skull stripping step
 REG_WITHIN_OUTPUT_PATTERN =  None # List of names or if None, will use "merged_dwi"
+
+###############################################################################
+#                         Registration to MNI                                 #
+###############################################################################
+
+TEMPLATE_PATH = "/simurgh/u/gustavochau/tpl-MNI152NLin2009cAsym_res-01_desc-brain_T1w.nii.gz"
+REG_MNI_MASK_INPUT_FOLDER = B0_CORRECTION_FOLDER
+REG_MNI_MASK_NAMES = 'mask_bet_scan0_mask.nii.gz'
+REG_MNI_B0_INPUT_FOLDER = B0_CORRECTION_FOLDER
+REG_MNI_INPUT_FOLDER = REG_WITHIN_OUTPUT_FOLDER
+REG_MNI_OUTPUT_FOLDER = os.path.join(OUTPUT_DIR, "Reg_MNI")
+REG_MNI_INPUT_NAMES = None # Name or if None, will assume output of Registration within subject 
+REG_MNI_BVEC_INPUT_NAMES = None # Name or if None, will assume output of Registration within subject 
+REG_MNI_BVAL_INPUT_NAMES = None # Name or if None, will assume output of Registration within subject 
+REG_MNI_B0_INPUT_NAMES = None # Name or if None, will assume output of Reg_within_and_merged
+REG_MNI_OUTPUT_PATTERN =  None # Name or if None, will use "merged_dwi"
+
+###############################################################################
+#                         DTIFIT using Dipy                                   #
+###############################################################################
+
+MASK_PATH = SKULL_STRIP_OUTPUT_FOLDER
+
+DTIFIT_INPUT_FOLDER = REG_MNI_OUTPUT_FOLDER
+DTIFIT_DWI_INPUT_NAME = None # Name or if None, will assume output of registration to MNI
+DTIFIT_BVEC_INPUT_NAME = None # Name or if None, will assume output of registration to MNI
+DTIFIT_BVAL_INPUT_NAME = None # Name or if None, will assume output of registration to MNI
+MASK_NAME = None # Name or if None, will assume output of registration to MNI
+DTIFIT_OUT_FOLDER = os.path.join(OUTPUT_DIR, "Dtifit")
+DTIFIT_QC_SLICES = [75,90]
