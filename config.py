@@ -153,12 +153,20 @@ REG_MNI_BVAL_INPUT_NAMES = None # Name or if None, will assume output of Registr
 REG_MNI_B0_INPUT_NAMES = None # Name or if None, will assume output of Reg_within_and_merged
 REG_MNI_OUTPUT_PATTERN =  None # Name or if None, will use "merged_dwi"
 
+# QC thresholds
+TRANSLATION_PASS = 3.0    # ≤3 mm ⇒ Passed
+TRANSLATION_WARN = 7.0    # 3–7 mm ⇒ Warning
+                          # >7 mm ⇒ Failed
+ROTATION_PASS = 1.5       # ≤1.5° ⇒ Passed
+ROTATION_WARN = 3.0       # 1.5–3° ⇒ Warning
+                          # >3° ⇒ Failed
+MODALITY_PATTERNS = {'Diffusion':['b0_reg*','mask_bet_scan0_mask*']}
+
 ###############################################################################
 #                         DTIFIT using Dipy                                   #
 ###############################################################################
 
 MASK_PATH = SKULL_STRIP_OUTPUT_FOLDER
-
 DTIFIT_INPUT_FOLDER = REG_MNI_OUTPUT_FOLDER
 DTIFIT_DWI_INPUT_NAME = None # Name or if None, will assume output of registration to MNI
 DTIFIT_BVEC_INPUT_NAME = None # Name or if None, will assume output of registration to MNI
@@ -166,3 +174,5 @@ DTIFIT_BVAL_INPUT_NAME = None # Name or if None, will assume output of registrat
 MASK_NAME = None # Name or if None, will assume output of registration to MNI
 DTIFIT_OUT_FOLDER = os.path.join(OUTPUT_DIR, "Dtifit")
 DTIFIT_QC_SLICES = [75,90]
+
+

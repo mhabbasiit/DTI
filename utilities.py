@@ -95,3 +95,122 @@ def init_logger(step_name, LOG_DIR, LOG_LEVEL, LOG_FORMAT):
         logger.error(f"Failed to set up logging properly: {str(e)}")
         logger.warning("Logs will only be displayed in the console.")
     return logger
+
+def find_file(root, pattern, session=None, verbose=False):
+    """
+    Find a file matching pattern under root directory, with improved debugging.
+    Uses configuration variables to handle AIBL-specific directory structure.
+    
+    Parameters:
+    -----------
+    root : str
+        Root directory to search in
+    pattern : str
+        File pattern to match
+    session : str or None
+        If provided, search only in the specified session directory
+    verbose : bool
+        Enable verbose output for debugging
+        
+    Returns:
+    --------
+    str or None
+        Path to the first matching file, or None if no matches found
+    """
+    if verbose:
+        logging.info(f"Searching for '{pattern}' in '{root}' (session: {session})")
+    
+    # Check if root exists
+    if not os.path.exists(root):
+        if verbose:
+            logging.warning(f"Root directory does not exist: {root}")
+        return None
+    
+    # Search paths to check
+    search_paths = []
+    
+    # For AIBL registration structure, check numbered subdirectories
+    if 'registration' in root:
+        # Look for numbered subdirectories (e.g., "1", "2", etc.)
+        if os.path.exists(root):
+            subdirs = [d for d in os.listdir(root) 
+                      if os.path.isdir(os.path.join(root, d)) and d.isdigit()]
+            
+            for subdir in subdirs:
+                subdir_path = os.path.join(root, subdir)
+                search_paths.append(os.path.join(subdir_path, '**'))
+                
+                # Also check the "other" subdirectory for transformation files
+                other_path = os.path.join(subdir_path, 'other')
+                if os.path.exists(other_path):
+                    search_paths.append(os.path.join(other_path, '**'))
+    
+    # If no specific registration paths were added, or for skullstrip directories,
+    # search the entire root directory
+    if not search_paths:
+        search_paths.append(os.path.join(root, '**'))
+        if verbose:
+            logging.info(f"Searching in all directories under root: {root}")
+    
+    # Search in all identified paths
+    matches = []
+    for search_path in search_paths:
+        # First try the exact pattern
+        path_matches = glob.glob(os.path.join(search_path, pattern), recursive=True)
+        if path_matches:
+            matches.extend(path_matches)
+            if verbose:
+                logging.info(f"Found {len(path_matches)} matches in {search_path}")
+        
+        # If no matches, try a more relaxed pattern by removing underscores
+        if not path_matches and '_' in pattern:
+            relaxed_pattern = pattern.replace('_', '*')
+            if verbose:
+                logging.info(f"No matches, trying relaxed pattern: {relaxed_pattern}")
+            relaxed_matches = glob.glob(os.path.join(search_path, relaxed_pattern), recursive=True)
+            if relaxed_matches:
+                matches.extend(relaxed_matches)
+        
+        # If still no matches, try an even more relaxed pattern
+        if not path_matches and not matches:
+            # Extract key parts from the pattern
+            if 'T1w' in pattern or 'T1-' in pattern:
+                key = 'T1'
+            elif 'T2w' in pattern or 'T2-' in pattern or 'T2_' in pattern:
+                key = 'T2'
+            else:
+                key = pattern.split('_')[0] if '_' in pattern else pattern.split('.')[0]
+                
+            if 'rigid' in pattern:
+                second_key = 'rigid'
+            elif 'cropped' in pattern:
+                second_key = 'crop'
+            elif 'zscore' in pattern:
+                second_key = 'z'
+            elif 'warped' in pattern:
+                second_key = 'warp'
+            elif 'affine' in pattern:
+                second_key = 'affine'
+            elif '.mat' in pattern:
+                second_key = 'mat'
+            else:
+                second_key = ''
+                
+            if second_key:
+                very_relaxed = f"*{key}*{second_key}*.nii.gz" if '.nii' in pattern else f"*{key}*{second_key}*.mat"
+            else:
+                very_relaxed = f"*{key}*.nii.gz" if '.nii' in pattern else f"*{key}*.mat"
+                
+            if verbose:
+                logging.info(f"Still no matches, trying very relaxed pattern: {very_relaxed}")
+            very_relaxed_matches = glob.glob(os.path.join(search_path, very_relaxed), recursive=True)
+            if very_relaxed_matches:
+                matches.extend(very_relaxed_matches)
+    
+    if verbose:
+        if matches:
+            logging.info(f"Found {len(matches)} total matches: {matches[:3]}")
+        else:
+            logging.warning(f"No matches found for pattern: {pattern} in any search path")
+    
+    return matches[0] if matches else None
