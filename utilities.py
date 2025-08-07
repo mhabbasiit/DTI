@@ -6,6 +6,57 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import logging
 from datetime import datetime
+import re
+from pathlib import Path
+
+import nibabel as nib
+import numpy as np
+import os
+
+def trim_odd_dimensions(nifti_path):
+    # Load the MRI volume
+    img = nib.load(nifti_path)
+    data = img.get_fdata()
+    affine = img.affine
+    header = img.header
+
+    original_shape = data.shape
+    if len(original_shape) != 4:
+        raise ValueError(f"Expected 4D volume, got shape: {original_shape}")
+
+    # Track which dimensions are modified
+    trimmed = False
+    new_shape = list(original_shape)
+
+    # Slice indices
+    slicer = [slice(None)] * 4
+
+    for dim in range(3):  # Only check x, y, z (not time)
+        if original_shape[dim] % 2 == 1:
+            new_shape[dim] -= 1
+            slicer[dim] = slice(0, new_shape[dim])
+            trimmed = True
+
+    if trimmed:
+        print(f"Original shape: {original_shape}, trimming to: {tuple(new_shape)}")
+        trimmed_data = data[tuple(slicer)]
+        new_img = nib.Nifti1Image(trimmed_data, affine, header)
+        nib.save(new_img, nifti_path)
+        print(f"Saved trimmed image back to: {nifti_path}")
+    else:
+        print(f"No trimming needed for shape: {original_shape}")
+        
+
+def is_session_folder(folder_name):
+    # Check if the folder name matches the date format YYYY-MM-DD
+    return re.fullmatch(r"\d{4}-\d{2}-\d{2}", folder_name) is not None
+
+def get_sessions(main_folder):
+    session_folders = [
+        d for d in os.listdir(main_folder)
+        if os.path.isdir(os.path.join(main_folder, d)) and is_session_folder(d)
+    ]
+    return session_folders
 
 def match_file_pattern(subject_folder,pattern):
     pattern_path = os.path.join(subject_folder, pattern)

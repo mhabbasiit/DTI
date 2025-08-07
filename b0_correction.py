@@ -20,6 +20,7 @@ from config import (
 )
 from process_topup import run_topup
 from config import setup_fsl_env
+from utilities import get_sessions
 
 
 if __name__ == "__main__":
@@ -48,12 +49,19 @@ if __name__ == "__main__":
     assert NUM_SCANS_PER_SESSION == len(blip_up_patterns['bvec'])
     assert NUM_SCANS_PER_SESSION == len(blip_up_patterns['json'])
 
-    subject_folder = os.path.join(INPUT_DIR,subject_id,INPUT_SUBDIR)
+    sessions = get_sessions(os.path.join(INPUT_DIR,subject_id))
+    print(sessions)
+    if not sessions:
+        subject_folders = [os.path.join(INPUT_DIR,subject_id,INPUT_SUBDIR)]
+    else:
+        subject_folders = [os.path.join(INPUT_DIR,subject_id,sess,INPUT_SUBDIR) for sess in sessions]
+
     if not os.path.exists(B0_CORRECTION_FOLDER):
-        os.mkdir(B0_CORRECTION_FOLDER)
-    out_subject_folder = os.path.join(B0_CORRECTION_FOLDER,subject_id)
-    if not os.path.exists(out_subject_folder):
-        os.mkdir(out_subject_folder)
+        os.makedirs(B0_CORRECTION_FOLDER, exist_ok=True)
+    if not sessions:
+        out_subject_folders = [os.path.join(B0_CORRECTION_FOLDER,subject_id)]
+    else:
+        out_subject_folders = [os.path.join(B0_CORRECTION_FOLDER,subject_id,sess) for sess in sessions]
 
     if B0_CORRECTION=='Topup':
         setup_fsl_env()
@@ -68,6 +76,11 @@ if __name__ == "__main__":
             print('Missing file pattern information for reversed polarity in config')
         print(blip_up_patterns)
         print(blip_down_patterns)
-        run_topup(subject_folder, out_subject_folder, blip_up_patterns, blip_down_patterns)
+        for subject_folder, out_subject_folder in zip(subject_folders, out_subject_folders):
+            print(subject_folder)
+            print(out_subject_folder)
+            os.makedirs(out_subject_folder, exist_ok=True)
+            run_topup(subject_folder, out_subject_folder, blip_up_patterns, blip_down_patterns)
     elif B0_CORRECTION=='Fieldmap':
+        # Not implemented yet
         pass

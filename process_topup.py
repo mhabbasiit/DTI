@@ -3,7 +3,7 @@ import os
 import numpy as np
 import subprocess
 import nibabel as nib
-from utilities import match_file_pattern, gen_qc_image
+from utilities import match_file_pattern, gen_qc_image, trim_odd_dimensions
 
 from config import (
     FSL_HOME,
@@ -88,6 +88,10 @@ def process_topup(subject_folder, correction_subject_folder, blip_up_patterns, b
     indices_PA_path = os.path.join(correction_subject_folder,blip_down_patterns['json'].replace('*','b0_indices').replace('.json','.txt'))
     dwi_AP_path = match_file_pattern(subject_folder, blip_up_patterns['dwi'])
     dwi_PA_path = match_file_pattern(subject_folder, blip_down_patterns['dwi'])
+
+    trim_odd_dimensions(dwi_AP_path)
+    trim_odd_dimensions(dwi_PA_path)
+
     b0_AP_path = os.path.join(correction_subject_folder,blip_up_patterns['dwi'].replace('*','b0_AP'))
     b0_PA_path = os.path.join(correction_subject_folder,blip_up_patterns['dwi'].replace('*','b0_PA'))
     write_indices(b0_indices_AP, indices_AP_path)
@@ -105,12 +109,14 @@ def process_topup(subject_folder, correction_subject_folder, blip_up_patterns, b
         write_acqparams(readout_time, len(b0_indices_AP), len(b0_indices_PA), acq_path)
         print(f"Readout time ({readout_time}) saved")
 
+    print("Merging")
     b0_all_path = os.path.join(correction_subject_folder, f'b0_all_scan_{scan_num}.nii.gz')
     # Merge b0 images for TOPUP
     os.system(f"fslmerge -t {b0_all_path} {b0_AP_path} {b0_PA_path}")
 
+    print("Running topup")
     top_up_results_path = os.path.join(correction_subject_folder, f'topup_results_{scan_num}')
-    unwarped_results_path = os.path.join(correction_subject_folder, f'b0_unwarped_{scan_num}.nii.gz')
+    unwarped_results_path = os.path.join(correction_subject_folder, f'b0_unwarped_{scan_num}')
     # Run TOPUP
     subprocess.run([
             "topup", f"--imain={b0_all_path}", f"--datain={acq_path}",
@@ -120,7 +126,7 @@ def process_topup(subject_folder, correction_subject_folder, blip_up_patterns, b
     
 def topup_qc(correction_subject_folder, scan_num):
     original_image_path = os.path.join(correction_subject_folder, f'b0_all_scan_{scan_num}.nii.gz')
-    unwarped_results_path = os.path.join(correction_subject_folder, f'b0_unwarped_{scan_num}')
+    unwarped_results_path = os.path.join(correction_subject_folder, f'b0_unwarped_{scan_num}.nii.gz')
     original_image = nib.load(original_image_path).get_fdata()
     unwarped_image = nib.load(unwarped_results_path).get_fdata()
 
@@ -134,8 +140,7 @@ def topup_qc(correction_subject_folder, scan_num):
         
         
 def run_topup(subject_folder, out_subject_folder, blip_up_patterns, blip_down_patterns):
-    if not os.path.exists(out_subject_folder):
-        os.mkdir(out_subject_folder)
+    os.makedirs(out_subject_folder,exist_ok=True)
     num_scans = len(blip_up_patterns['dwi'])
     for n in range(num_scans):
         blip_up_patterns_n = {}
