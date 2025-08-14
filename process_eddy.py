@@ -8,6 +8,7 @@ import config
 import nibabel as nib
 
 from config import setup_fsl_env
+from utilities import get_sessions, trim_odd_dimensions
 
 from utilities import match_file_pattern, gen_qc_image
 
@@ -133,7 +134,6 @@ def run_eddy(subject_folder, correction_subject_folder, eddy_folder, blip_up_pat
     merged_bval = os.path.join(eddy_folder, f"dwi_merged_{scan_num}.bval")
     merged_bvec = os.path.join(eddy_folder, f"dwi_merged_{scan_num}.bvec")
 
-
     dwi_AP_path = match_file_pattern(subject_folder, blip_up_patterns['dwi'])
     bvecs_AP_path = match_file_pattern(subject_folder, blip_up_patterns['bvec'])
     dwi_PA_path = match_file_pattern(subject_folder, blip_down_patterns['dwi'])
@@ -141,6 +141,7 @@ def run_eddy(subject_folder, correction_subject_folder, eddy_folder, blip_up_pat
     topup_path = os.path.join(correction_subject_folder,f'topup_results_{scan_num}')
     topup_image_path = os.path.join(correction_subject_folder,f'b0_unwarped_{scan_num}.nii.gz')
     acq_path = os.path.join(correction_subject_folder,f"acq_scan_{scan_num}.txt")
+
     subprocess.call(f"fslmerge -t {merged_dwi} {dwi_AP_path} {dwi_PA_path}",shell=True)
     subprocess.call(f"paste -d ' ' {bvals_AP_path} {bvals_PA_path} > {merged_bval}",shell=True)
     subprocess.call(f"paste -d ' ' {bvecs_AP_path} {bvecs_PA_path} > {merged_bvec}",shell=True)
@@ -152,7 +153,8 @@ def run_eddy(subject_folder, correction_subject_folder, eddy_folder, blip_up_pat
     out_path = os.path.join(eddy_folder,f'eddy_aligned_{scan_num}')
 
     if SLICE_TO_SLICE_CORRECTION:
-        eddy_cmd = f"eddy_cuda10.2 --topup={topup_path} --repol --ol_nstd=3.5 --ol_nvox=250 --imain={merged_dwi} --flm=quadratic --mask={mask_path} --out={out_path} --acqp={acq_path} --index={eddy_indices_path} --bvecs={merged_bvec} --bvals={merged_bval} --verbose --mporder=6 --slspec={slspec_path} --s2v_niter=5 --s2v_lambda=1 --s2v_interp=trilinear"
+        eddy_cmd = f"eddy_cuda10.2 --topup={topup_path} --repol --ol_nstd=3.5 --ol_nvox=250 --imain={merged_dwi} --flm=quadratic --mask={mask_path} --out={out_path} --acqp={acq_path} --index={eddy_indices_path} --bvecs={merged_bvec} --bvals={merged_bval} --verbose --mporder=6 --json={json_AP_path} --s2v_niter=5 --s2v_lambda=1 --s2v_interp=trilinear --data_is_shelled"
+        #eddy_cmd = f"eddy_cuda10.2 --topup={topup_path} --repol --ol_nstd=3.5 --ol_nvox=250 --imain={merged_dwi} --flm=quadratic --mask={mask_path} --out={out_path} --acqp={acq_path} --index={eddy_indices_path} --bvecs={merged_bvec} --bvals={merged_bval} --verbose --mporder=6 --slspec={slspec_path} --s2v_niter=5 --s2v_lambda=1 --s2v_interp=trilinear"
     else:
         eddy_cmd = f"eddy_cuda10.2 --topup={topup_path} --repol --ol_nstd=3.5 --ol_nvox=250 --imain={merged_dwi} --flm=quadratic --mask={mask_path} --out={out_path} --acqp={acq_path} --index={eddy_indices_path} --bvecs={merged_bvec} --bvals={merged_bval} --verbose --mporder=6"
     
@@ -167,18 +169,32 @@ if __name__ == "__main__":
     else:
         subject_id = sys.argv[1]
 
-    subject_folder = os.path.join(INPUT_DIR,subject_id,INPUT_SUBDIR)
+
     if not os.path.exists(EDDY_CORRECTION_FOLDER):
-        os.mkdir(EDDY_CORRECTION_FOLDER)
+        os.makedirs(EDDY_CORRECTION_FOLDER, exist_ok=True)
+
+    sessions = get_sessions(os.path.join(INPUT_DIR,subject_id))
+    print(sessions)
+    if not sessions:
+        subject_folders = [os.path.join(INPUT_DIR,subject_id,INPUT_SUBDIR)]
+        out_subject_folders = [os.path.join(EDDY_CORRECTION_FOLDER,subject_id)]
+        b0_correction_folders = [os.path.join(B0_CORRECTION_FOLDER,subject_id)]
+    else:
+        subject_folders = [os.path.join(INPUT_DIR,subject_id,sess,INPUT_SUBDIR) for sess in sessions]
+        out_subject_folders = [os.path.join(EDDY_CORRECTION_FOLDER,subject_id,sess) for sess in sessions]
+        b0_correction_folders = [os.path.join(B0_CORRECTION_FOLDER,subject_id,sess) for sess in sessions]
+
+    # subject_folder = os.path.join(INPUT_DIR,subject_id,INPUT_SUBDIR)
+    # if not os.path.exists(EDDY_CORRECTION_FOLDER):
+    #     os.mkdir(EDDY_CORRECTION_FOLDER)
     
-    out_subject_folder = os.path.join(EDDY_CORRECTION_FOLDER,subject_id)
-    if not os.path.exists(out_subject_folder):
-        os.mkdir(out_subject_folder)
+    # out_subject_folder = os.path.join(EDDY_CORRECTION_FOLDER,subject_id)
+    # if not os.path.exists(out_subject_folder):
+    #     os.mkdir(out_subject_folder)
 
     setup_fsl_env()
 
-
-    b0_correction_folder = os.path.join(B0_CORRECTION_FOLDER,subject_id)
+    #b0_correction_folder = os.path.join(B0_CORRECTION_FOLDER,subject_id)
 
     blip_up_patterns = {}
     try:
@@ -214,5 +230,10 @@ if __name__ == "__main__":
         for k,v in blip_down_patterns.items():
             blip_down_patterns_n[k] = v[n]
         print(f"Processing scan # {n}")
-        run_eddy(subject_folder, b0_correction_folder, out_subject_folder, blip_up_patterns_n, blip_down_patterns_n, n)
-        eddy_qc(out_subject_folder, n)
+
+        for subject_folder, out_subject_folder, b0_correction_folder in zip(subject_folders, out_subject_folders, b0_correction_folders):
+            print(subject_folder)
+            print(out_subject_folder)
+            os.makedirs(out_subject_folder, exist_ok=True)
+            run_eddy(subject_folder, b0_correction_folder, out_subject_folder, blip_up_patterns_n, blip_down_patterns_n, n)
+            eddy_qc(out_subject_folder, n)

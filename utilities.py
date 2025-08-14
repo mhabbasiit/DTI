@@ -13,6 +13,19 @@ import nibabel as nib
 import numpy as np
 import os
 
+def get_dimensions(nifti_path):
+    # Load the MRI volume
+    img = nib.load(nifti_path)
+    data = img.get_fdata()
+    affine = img.affine
+    header = img.header
+
+    original_shape = data.shape
+    if len(original_shape) != 4:
+        raise ValueError(f"Expected 4D volume, got shape: {original_shape}")
+
+    return original_shape
+
 def trim_odd_dimensions(nifti_path):
     # Load the MRI volume
     img = nib.load(nifti_path)

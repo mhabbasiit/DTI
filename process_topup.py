@@ -3,7 +3,7 @@ import os
 import numpy as np
 import subprocess
 import nibabel as nib
-from utilities import match_file_pattern, gen_qc_image, trim_odd_dimensions
+from utilities import match_file_pattern, gen_qc_image, get_dimensions
 
 from config import (
     FSL_HOME,
@@ -17,7 +17,7 @@ def load_json(json_file):
 
 # ==== Extract Readout Time ====
 def get_readout_time(json_data):
-    return json_data.get("TotalReadoutTime", None)
+    return json_data.get("TotalReadoutTime", 0.05)
 
 def get_PE_direction(json_data):
     return json_data.get('PhaseEncodingDirection', None)
@@ -89,8 +89,13 @@ def process_topup(subject_folder, correction_subject_folder, blip_up_patterns, b
     dwi_AP_path = match_file_pattern(subject_folder, blip_up_patterns['dwi'])
     dwi_PA_path = match_file_pattern(subject_folder, blip_down_patterns['dwi'])
 
-    trim_odd_dimensions(dwi_AP_path)
-    trim_odd_dimensions(dwi_PA_path)
+    original_shape = get_dimensions(dwi_AP_path)
+    if (original_shape[0]%2==0) and (original_shape[1]%2==0) and (original_shape[2]%2==0):
+        print('All dimensions are even')
+        config_cnf = 'b02b0_2.cnf'
+    else:
+        print('One dimension is odd')
+        config_cnf = 'b02b0_1.cnf'
 
     b0_AP_path = os.path.join(correction_subject_folder,blip_up_patterns['dwi'].replace('*','b0_AP'))
     b0_PA_path = os.path.join(correction_subject_folder,blip_up_patterns['dwi'].replace('*','b0_PA'))
@@ -120,7 +125,7 @@ def process_topup(subject_folder, correction_subject_folder, blip_up_patterns, b
     # Run TOPUP
     subprocess.run([
             "topup", f"--imain={b0_all_path}", f"--datain={acq_path}",
-            "--config=b02b0.cnf", f"--out={top_up_results_path}", f"--iout={unwarped_results_path}"])
+            f"--config={config_cnf}", f"--out={top_up_results_path}", f"--iout={unwarped_results_path}"])
 
     print("TOPUP preprocessing completed!")
     

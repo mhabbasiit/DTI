@@ -11,7 +11,7 @@ import subprocess
 import shutil
 from scipy.linalg import polar
 from config import setup_fsl_env
-
+from utilities import get_sessions
 
 # Import configuration
 from config import (
@@ -43,65 +43,65 @@ registration_results = {
     'average_processing_time': 0  
 }
 
-def save_registration_report(results, output_dir):
-    """Save registration results to a JSON file."""
-    report_path = os.path.join(output_dir, 'registration_report.json')
-    with open(report_path, 'w') as f:
-        json.dump(results, f, indent=4)
-    print(f"\nDetailed registration report saved to: {report_path}")
+# def save_registration_report(results, output_dir):
+#     """Save registration results to a JSON file."""
+#     report_path = os.path.join(output_dir, 'registration_report.json')
+#     with open(report_path, 'w') as f:
+#         json.dump(results, f, indent=4)
+#     print(f"\nDetailed registration report saved to: {report_path}")
 
-def format_time(seconds):
-    """Convert seconds to human-readable format."""
-    hours = int(seconds // 3600)
-    minutes = int((seconds % 3600) // 60)
-    seconds = int(seconds % 60)
-    if hours > 0:
-        return f"{hours}h {minutes}m {seconds}s"
-    elif minutes > 0:
-        return f"{minutes}m {seconds}s"
-    else:
-        return f"{seconds}s"
+# def format_time(seconds):
+#     """Convert seconds to human-readable format."""
+#     hours = int(seconds // 3600)
+#     minutes = int((seconds % 3600) // 60)
+#     seconds = int(seconds % 60)
+#     if hours > 0:
+#         return f"{hours}h {minutes}m {seconds}s"
+#     elif minutes > 0:
+#         return f"{minutes}m {seconds}s"
+#     else:
+#         return f"{seconds}s"
 
-def print_registration_summary(results):
-    """Print a summary of registration results."""
-    print("\n=== Registration Summary ===")
-    print(f"Total expected subjects: {results['total_subjects']}")
-    print(f"Successfully processed: {len(results['successful_subjects'])}")
-    print(f"Failed during processing: {len(results['failed_subjects'])}")
-    print(f"Missing input files: {len(results['missing_subjects'])}")
+# def print_registration_summary(results):
+#     """Print a summary of registration results."""
+#     print("\n=== Registration Summary ===")
+#     print(f"Total expected subjects: {results['total_subjects']}")
+#     print(f"Successfully processed: {len(results['successful_subjects'])}")
+#     print(f"Failed during processing: {len(results['failed_subjects'])}")
+#     print(f"Missing input files: {len(results['missing_subjects'])}")
     
-    total_processed = len(results['successful_subjects']) + len(results['failed_subjects'])
+#     total_processed = len(results['successful_subjects']) + len(results['failed_subjects'])
     
-    if total_processed > 0:
-        success_rate = (len(results['successful_subjects']) / total_processed) * 100
-        print(f"Success rate: {success_rate:.2f}%")
-    elif results['total_subjects'] > 0:
-        total_issues = len(results['failed_subjects']) + len(results['missing_subjects'])
-        success_rate = (len(results['successful_subjects']) / results['total_subjects']) * 100
-        fail_rate = (total_issues / results['total_subjects']) * 100
-        print(f"Success rate: {success_rate:.2f}%")
-        print(f"Total fail rate: {fail_rate:.2f}%")
-    else:
-        print("No subjects to process found.")
+#     if total_processed > 0:
+#         success_rate = (len(results['successful_subjects']) / total_processed) * 100
+#         print(f"Success rate: {success_rate:.2f}%")
+#     elif results['total_subjects'] > 0:
+#         total_issues = len(results['failed_subjects']) + len(results['missing_subjects'])
+#         success_rate = (len(results['successful_subjects']) / results['total_subjects']) * 100
+#         fail_rate = (total_issues / results['total_subjects']) * 100
+#         print(f"Success rate: {success_rate:.2f}%")
+#         print(f"Total fail rate: {fail_rate:.2f}%")
+#     else:
+#         print("No subjects to process found.")
     
-    if results['processing_times']:
-        avg_time = results['average_processing_time']
-        print(f"\nTiming Information:")
-        print(f"Average processing time per subject: {format_time(avg_time)}")
-        print("\nProcessing times per subject:")
-        for subj, t in results['processing_times'].items():
-            print(f"- Subject {subj}: {format_time(t)}")
+#     if results['processing_times']:
+#         avg_time = results['average_processing_time']
+#         print(f"\nTiming Information:")
+#         print(f"Average processing time per subject: {format_time(avg_time)}")
+#         print("\nProcessing times per subject:")
+#         for subj, t in results['processing_times'].items():
+#             print(f"- Subject {subj}: {format_time(t)}")
     
-    if results['failed_subjects']:
-        print("\nFailed subjects (processing errors):")
-        for subject, error in results['errors'].items():
-            if subject in results['failed_subjects']:
-                print(f"- {subject}: {error}")
+#     if results['failed_subjects']:
+#         print("\nFailed subjects (processing errors):")
+#         for subject, error in results['errors'].items():
+#             if subject in results['failed_subjects']:
+#                 print(f"- {subject}: {error}")
     
-    if results['missing_subjects']:
-        print("\nMissing subjects (input files not found):")
-        for subject in results['missing_subjects']:
-            print(f"- {subject}")
+#     if results['missing_subjects']:
+#         print("\nMissing subjects (input files not found):")
+#         for subject in results['missing_subjects']:
+#             print(f"- {subject}")
 
 def register_rigid(b0_path, mni_template_path, output_matrix, output_registered_path):
     flirt_cmd = [
@@ -168,88 +168,100 @@ if __name__ == "__main__":
     else:
         subject_id = sys.argv[1]
 
-    if not os.path.exists(REG_MNI_OUTPUT_FOLDER):
-        os.mkdir(REG_MNI_OUTPUT_FOLDER)
+    os.makedirs(REG_MNI_OUTPUT_FOLDER,exist_ok=True)
 
     setup_fsl_env()
 
     fixed = TEMPLATE_PATH
-    input_b0_subject_folder = os.path.join(REG_MNI_B0_INPUT_FOLDER,subject_id)
-    input_subject_folder = os.path.join(REG_MNI_INPUT_FOLDER,subject_id)
-    out_folder = os.path.join(REG_MNI_OUTPUT_FOLDER,subject_id)
-    if not os.path.exists(out_folder):
-        os.mkdir(out_folder)
 
-    # B0 names
-    if REG_MNI_B0_INPUT_NAMES:
-        b0_input_name = REG_MNI_B0_INPUT_NAMES
+    sessions = get_sessions(os.path.join(REG_MNI_INPUT_FOLDER,subject_id))
+    print(sessions)
+    if not sessions:
+        input_b0_subject_folders = [os.path.join(REG_MNI_B0_INPUT_FOLDER,subject_id)]
+        input_subject_folders = [os.path.join(REG_MNI_INPUT_FOLDER,subject_id)]
+        out_folders = [os.path.join(REG_MNI_OUTPUT_FOLDER,subject_id)]
+        mask_folders = [os.path.join(REG_MNI_MASK_INPUT_FOLDER, subject_id)]
     else:
-        b0_input_name = os.path.join(input_b0_subject_folder,f'mask_bet_scan0.nii.gz')
-
-    # Whole diffusion MRI 
-    if REG_MNI_INPUT_NAMES:
-        input_name = REG_MNI_INPUT_NAMES
-    else:
-        input_name = os.path.join(input_subject_folder,f'dwi_all_combined.nii.gz')
+        input_b0_subject_folders = [os.path.join(REG_MNI_B0_INPUT_FOLDER,subject_id,sess) for sess in sessions]
+        input_subject_folders = [os.path.join(REG_MNI_INPUT_FOLDER,subject_id,sess) for sess in sessions]
+        out_folders = [os.path.join(REG_MNI_OUTPUT_FOLDER,subject_id,sess) for sess in sessions]
+        mask_folders = [os.path.join(REG_MNI_MASK_INPUT_FOLDER, subject_id, sess) for sess in sessions]
     
-    if REG_MNI_BVEC_INPUT_NAMES:
-        bvec_input_names = REG_MNI_BVEC_INPUT_NAMES
-    else:
-        bvec_input_names = os.path.join(input_subject_folder,f'dwi_all_combined.bvec')
-    
-    if REG_MNI_BVAL_INPUT_NAMES:
-        bval_input_names = REG_MNI_BVAL_INPUT_NAMES
-    else:
-        bval_input_names = os.path.join(input_subject_folder,f'dwi_all_combined.bval')
+    for input_b0_subject_folder, input_subject_folder, out_folder, input_mask_folder in zip(input_b0_subject_folders, input_subject_folders, out_folders, mask_folders):
+
+        os.makedirs(out_folder,exist_ok=True)
 
 
-    mask_path =  os.path.join(REG_MNI_MASK_INPUT_FOLDER, subject_id, REG_MNI_MASK_NAMES)
-    
+        # B0 names
+        if REG_MNI_B0_INPUT_NAMES:
+            b0_input_name = os.path.join(input_b0_subject_folder,REG_MNI_B0_INPUT_NAMES)
+        else:
+            b0_input_name = os.path.join(input_b0_subject_folder,f'mask_bet_scan0.nii.gz')
 
-    # # Register b0's using rigid transformation
-    # print(f"DEBUG: REGISTERING B0 IMAGES WITH RIGID TRANSFORMATION")
-    # moving = b0_input_name
-    output_matrix_rigid = os.path.join(out_folder,'rigid_to_mni.mat')
-    output_registered_path_rigid = os.path.join(out_folder,f'b0_reg_rigid.nii.gz')
-    # register_rigid(moving, fixed, output_matrix_rigid, output_registered_path_rigid)
+        # Whole diffusion MRI 
+        if REG_MNI_INPUT_NAMES:
+            input_name = os.path.join(input_subject_folder,REG_MNI_INPUT_NAMES)
+        else:
+            input_name = os.path.join(input_subject_folder,f'dwi_all_combined.nii.gz')
+        
+        if REG_MNI_BVEC_INPUT_NAMES:
+            bvec_input_names = os.path.join(input_subject_folder,REG_MNI_BVEC_INPUT_NAMES)
+        else:
+            bvec_input_names = os.path.join(input_subject_folder,f'dwi_all_combined.bvec')
+        
+        if REG_MNI_BVAL_INPUT_NAMES:
+            bval_input_names = os.path.join(input_subject_folder, REG_MNI_BVAL_INPUT_NAMES)
+        else:
+            bval_input_names = os.path.join(input_subject_folder,f'dwi_all_combined.bval')
 
-    # # Register b0's using affine transformation
-    # print(f"DEBUG: REGISTERING B0 IMAGES WITH AFFINE TRANSFORMATION")
-    # moving = output_registered_path_rigid
-    output_matrix_affine = os.path.join(out_folder,'affine_to_mni.mat')
-    output_registered_path_affine = os.path.join(out_folder,f'b0_reg_affine.nii.gz')
-    # register_affine(moving, fixed, output_matrix_affine, output_registered_path_affine)
 
-    # # Apply to DWI
-    # print(f"DEBUG: REGISTERING DWI IMAGES WITH RIGID TRANSFORMATION")
-    # moving = input_name
-    # out_path_dwi_reg_rigid = os.path.join(out_folder,f'dwi_reg_rigid.nii.gz')
-    # apply_transform_to_dwi(moving, fixed, output_matrix_rigid, out_path_dwi_reg_rigid)
+        mask_path =  os.path.join(input_mask_folder, REG_MNI_MASK_NAMES)
+        
 
-    # print(f"DEBUG: REGISTERING DWI IMAGES WITH AFFINE TRANSFORMATION")
-    # moving = out_path_dwi_reg_rigid
-    # out_path_dwi_reg_affine = os.path.join(out_folder,f'dwi_reg_affine.nii.gz')
-    # apply_transform_to_dwi(moving, fixed, output_matrix_affine, out_path_dwi_reg_affine)
+        # Register b0's using rigid transformation
+        print(f"DEBUG: REGISTERING B0 IMAGES WITH RIGID TRANSFORMATION")
+        moving = b0_input_name
+        output_matrix_rigid = os.path.join(out_folder,'rigid_to_mni.mat')
+        output_registered_path_rigid = os.path.join(out_folder,f'b0_reg_rigid.nii.gz')
+        register_rigid(moving, fixed, output_matrix_rigid, output_registered_path_rigid)
 
-    # # # Rotate bvecs
-    # print('DEBUG: REGISTERING BVECS WITH RIGID TRANSFORMATION')
-    # out_path_bvec_reg_rigid = os.path.join(out_folder,f'bvec_reg_rigid.bvec')
-    # rotate_bvecs(bvec_input_names, out_path_bvec_reg_rigid , output_matrix_rigid)
+        # Register b0's using affine transformation
+        print(f"DEBUG: REGISTERING B0 IMAGES WITH AFFINE TRANSFORMATION")
+        moving = output_registered_path_rigid
+        output_matrix_affine = os.path.join(out_folder,'affine_to_mni.mat')
+        output_registered_path_affine = os.path.join(out_folder,f'b0_reg_affine.nii.gz')
+        register_affine(moving, fixed, output_matrix_affine, output_registered_path_affine)
 
-    # print('DEBUG: REGISTERING BVECS WITH AFFINE TRANSFORMATION')
-    # out_path_bvec_reg_affine = os.path.join(out_folder,f'bvec_reg_affine.bvec')
-    # rotate_bvecs(out_path_bvec_reg_rigid, out_path_bvec_reg_affine , output_matrix_affine)
-    # # rotate_bvecs(bvec_input_names[i], bvec_input_names[i].replace('.bvec','_reg.bvec'), output_matrix)
+        # Apply to DWI
+        print(f"DEBUG: REGISTERING DWI IMAGES WITH RIGID TRANSFORMATION")
+        moving = input_name
+        out_path_dwi_reg_rigid = os.path.join(out_folder,f'dwi_reg_rigid.nii.gz')
+        apply_transform_to_dwi(moving, fixed, output_matrix_rigid, out_path_dwi_reg_rigid)
 
-    # Copy bval
-    print('DEBUG: COPYING BVAL')
-    out_path_bval = os.path.join(out_folder,f'bval_final.bval')
-    shutil.copyfile(bval_input_names, out_path_bval)
+        print(f"DEBUG: REGISTERING DWI IMAGES WITH AFFINE TRANSFORMATION")
+        moving = out_path_dwi_reg_rigid
+        out_path_dwi_reg_affine = os.path.join(out_folder,f'dwi_reg_affine.nii.gz')
+        apply_transform_to_dwi(moving, fixed, output_matrix_affine, out_path_dwi_reg_affine)
 
-    print('DEBUG: REGISTERING MASK')
-    moving = mask_path
-    out_path_mask_reg_rigid = os.path.join(out_folder,f'mask_reg_rigid.nii.gz')
-    apply_transform_to_dwi(moving, fixed, output_matrix_rigid, out_path_mask_reg_rigid,'nearestneighbour')
-    moving = out_path_mask_reg_rigid
-    out_path_mask_reg_affine = os.path.join(out_folder,f'mask_reg_affine.nii.gz')
-    apply_transform_to_dwi(moving, fixed, output_matrix_affine, out_path_mask_reg_affine,'nearestneighbour')
+        # Rotate bvecs
+        print('DEBUG: REGISTERING BVECS WITH RIGID TRANSFORMATION')
+        out_path_bvec_reg_rigid = os.path.join(out_folder,f'bvec_reg_rigid.bvec')
+        rotate_bvecs(bvec_input_names, out_path_bvec_reg_rigid , output_matrix_rigid)
+
+        print('DEBUG: REGISTERING BVECS WITH AFFINE TRANSFORMATION')
+        out_path_bvec_reg_affine = os.path.join(out_folder,f'bvec_reg_affine.bvec')
+        rotate_bvecs(out_path_bvec_reg_rigid, out_path_bvec_reg_affine , output_matrix_affine)
+        # rotate_bvecs(bvec_input_names[i], bvec_input_names[i].replace('.bvec','_reg.bvec'), output_matrix)
+
+        # Copy bval
+        print('DEBUG: COPYING BVAL')
+        out_path_bval = os.path.join(out_folder,f'bval_final.bval')
+        shutil.copyfile(bval_input_names, out_path_bval)
+
+        print('DEBUG: REGISTERING MASK')
+        moving = mask_path
+        out_path_mask_reg_rigid = os.path.join(out_folder,f'mask_reg_rigid.nii.gz')
+        apply_transform_to_dwi(moving, fixed, output_matrix_rigid, out_path_mask_reg_rigid,'nearestneighbour')
+        moving = out_path_mask_reg_rigid
+        out_path_mask_reg_affine = os.path.join(out_folder,f'mask_reg_affine.nii.gz')
+        apply_transform_to_dwi(moving, fixed, output_matrix_affine, out_path_mask_reg_affine,'nearestneighbour')

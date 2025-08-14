@@ -13,7 +13,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from config import setup_fsl_env
 
-from utilities import init_logger
+from utilities import init_logger, get_sessions
 
 
 from config import (
@@ -242,24 +242,33 @@ if __name__ == "__main__":
 
     setup_fsl_env()
     logger = init_logger('skullstripping', LOG_DIR, LOG_LEVEL, LOG_FORMAT)
-    if not os.path.exists(SKULL_STRIP_OUTPUT_FOLDER):
-        os.mkdir(SKULL_STRIP_OUTPUT_FOLDER)
 
-    input_subject_folder = os.path.join(SKULL_STRIP_INPUT_FOLDER,subject_id)
-    out_folder = os.path.join(SKULL_STRIP_OUTPUT_FOLDER,subject_id)
-    if not os.path.exists(out_folder):
-        os.mkdir(out_folder)
+    os.makedirs(SKULL_STRIP_OUTPUT_FOLDER,exist_ok=True)
 
-    if SKULL_STRIP_INPUT_NAMES:
-        topup_image_paths = [os.path.join(input_subject_folder,x) for x in SKULL_STRIP_INPUT_NAMES]
+    sessions = get_sessions(os.path.join(SKULL_STRIP_INPUT_FOLDER,subject_id))
+    print(sessions)
+    if not sessions:
+        subject_folders = [os.path.join(SKULL_STRIP_INPUT_FOLDER,subject_id)]
+        out_subject_folders = [os.path.join(SKULL_STRIP_OUTPUT_FOLDER,subject_id)]
     else:
-        topup_image_paths = [os.path.join(input_subject_folder,f'b0_unwarped_{x}_mean.nii.gz') for x in range(NUM_SCANS_PER_SESSION)]
+        subject_folders = [os.path.join(SKULL_STRIP_INPUT_FOLDER,subject_id,sess) for sess in sessions]
+        out_subject_folders = [os.path.join(SKULL_STRIP_OUTPUT_FOLDER,subject_id,sess) for sess in sessions]
+
+    for input_subject_folder, out_folder in zip(subject_folders,out_subject_folders):
+
+
+        os.makedirs(out_folder,exist_ok=True)
+
+        if SKULL_STRIP_INPUT_NAMES:
+            topup_image_paths = [os.path.join(input_subject_folder,x) for x in SKULL_STRIP_INPUT_NAMES]
+        else:
+            topup_image_paths = [os.path.join(input_subject_folder,f'b0_unwarped_{x}_mean.nii.gz') for x in range(NUM_SCANS_PER_SESSION)]
+        
+        if SKULL_STRIP_OUTPUT_PATTERN:
+            out_paths = [os.path.join(input_subject_folder,f'{SKULL_STRIP_OUTPUT_PATTERN}_scan{x}') for x in range(NUM_SCANS_PER_SESSION)]
+        else:
+            out_paths = [os.path.join(out_folder,f'mask_bet_scan{x}') for x in range(NUM_SCANS_PER_SESSION)]
     
-    if SKULL_STRIP_OUTPUT_PATTERN:
-        out_paths = [os.path.join(input_subject_folder,f'{SKULL_STRIP_OUTPUT_PATTERN}_scan{x}') for x in range(NUM_SCANS_PER_SESSION)]
-    else:
-        out_paths = [os.path.join(out_folder,f'mask_bet_scan{x}') for x in range(NUM_SCANS_PER_SESSION)]
-   
-    for in_path, out_path in zip(topup_image_paths,out_paths):
-        run_bet(in_path, out_path, FRACTIONAL_INTENSITY)
-        perform_quality_check(f"{out_path}.nii.gz", in_path, 'Diffusion', logger)
+        for in_path, out_path in zip(topup_image_paths,out_paths):
+            run_bet(in_path, out_path, FRACTIONAL_INTENSITY)
+            perform_quality_check(f"{out_path}.nii.gz", in_path, 'Diffusion', logger)
