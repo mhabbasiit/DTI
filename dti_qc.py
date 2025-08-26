@@ -747,10 +747,6 @@ class DTIQualityControl:
                             html_content += f"""
                             <tr><td>&nbsp;&nbsp;Rigid Dice</td><td>{qc_data['rigid_dice']:.4f}</td></tr>
                             <tr><td>&nbsp;&nbsp;Rigid Status</td><td>{qc_data.get('rigid_status', 'Unknown')}</td></tr>"""
-                        if 'affine_dice' in qc_data and qc_data['affine_dice']:
-                            html_content += f"""
-                            <tr><td>&nbsp;&nbsp;Affine Dice</td><td>{qc_data['affine_dice']:.4f}</td></tr>
-                            <tr><td>&nbsp;&nbsp;Affine Status</td><td>{qc_data.get('affine_status', 'Unknown')}</td></tr>"""
                     
                 elif qc_key == 'registration_mni_qc':
                     # Show CSV data from existing files
