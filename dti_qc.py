@@ -36,6 +36,12 @@ import seaborn as sns
 from datetime import datetime
 import logging
 from pathlib import Path
+
+# Import configuration
+try:
+    from config import NUM_SCANS_PER_SESSION
+except ImportError:
+    NUM_SCANS_PER_SESSION = 1  # Default fallback
 import shutil
 from collections import defaultdict
 
@@ -58,7 +64,7 @@ def setup_logging(output_dir, subject_id):
     """Setup simple logging for QC process"""
     try:
         # Simple structure: DTI_QC/logs/
-        log_dir = os.path.join(output_dir, "DTI_QC")
+        log_dir = os.path.join(output_dir, "QC")
         os.makedirs(log_dir, exist_ok=True)
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -105,7 +111,7 @@ class DTIQualityControl:
         self.output_base_dir = output_base_dir
         
         # Create simple QC structure
-        self.qc_base_dir = os.path.join(output_base_dir, "DTI_QC")
+        self.qc_base_dir = os.path.join(output_base_dir, "QC")
         
         # Subject directory - directly in base folder
         self.subject_dir = os.path.join(self.qc_base_dir, subject_id)
@@ -122,6 +128,7 @@ class DTIQualityControl:
         self.qc_results = {
             'subject_id': subject_id,
             'timestamp': datetime.now().isoformat(),
+            'session': None,  # Will be detected later
             'topup_qc': {},
             'skull_stripping_qc': {},
             'eddy_qc': {},
@@ -152,9 +159,67 @@ class DTIQualityControl:
 
     # Removed old QC check functions - now using read_existing_qc_files() instead
 
+    def find_session_directory(self, base_path):
+        """Find session directory if it exists (e.g., 2024-02-13)"""
+        if not os.path.exists(base_path):
+            return base_path
+        
+        # List directories in the base path
+        try:
+            subdirs = [d for d in os.listdir(base_path) 
+                      if os.path.isdir(os.path.join(base_path, d))]
+            
+            # Look for date-like directories (YYYY-MM-DD format)
+            for subdir in subdirs:
+                if len(subdir) == 10 and subdir.count('-') == 2:
+                    try:
+                        year, month, day = subdir.split('-')
+                        if (len(year) == 4 and len(month) == 2 and len(day) == 2 and
+                            year.isdigit() and month.isdigit() and day.isdigit()):
+                            session_path = os.path.join(base_path, subdir)
+                            logging.info(f"Found session directory: {session_path}")
+                            return session_path
+                    except:
+                        continue
+            
+            # If no session directory found, return original path
+            return base_path
+        except Exception as e:
+            logging.warning(f"Error checking for session directory in {base_path}: {e}")
+            return base_path
+
+    def get_session_name(self, base_path):
+        """Get session name if it exists, otherwise return empty string"""
+        if not os.path.exists(base_path):
+            return ""
+        
+        try:
+            subdirs = [d for d in os.listdir(base_path) 
+                      if os.path.isdir(os.path.join(base_path, d))]
+            
+            # Look for date-like directories (YYYY-MM-DD format)
+            for subdir in subdirs:
+                if len(subdir) == 10 and subdir.count('-') == 2:
+                    try:
+                        year, month, day = subdir.split('-')
+                        if (len(year) == 4 and len(month) == 2 and len(day) == 2 and
+                            year.isdigit() and month.isdigit() and day.isdigit()):
+                            return subdir
+                    except:
+                        continue
+            return ""
+        except:
+            return ""
+
     def read_existing_qc_files(self):
         """Read existing QC CSV files and extract information"""
         qc_dir = os.path.join(self.output_base_dir, 'QC', self.subject_id)
+        
+        # Check if session directory exists inside QC folder and save session info
+        session_name = self.get_session_name(qc_dir)
+        if session_name:
+            self.qc_results['session'] = session_name
+        qc_dir = self.find_session_directory(qc_dir)
         
         # Read file existence CSV
         file_exist_csv = os.path.join(qc_dir, 'file_existance.csv')
@@ -176,9 +241,9 @@ class DTIQualityControl:
                 logging.error(f"Error reading file existence CSV: {e}")
                 self.qc_results['file_existence_qc'] = {'status': 'ERROR', 'csv_exists': False}
         
-        # Read within subject registration CSV
+        # Check within subject registration CSV - only if NUM_SCANS_PER_SESSION > 1
         within_csv = os.path.join(qc_dir, 'within_subject_registraction_qc.csv')
-        if os.path.exists(within_csv):
+        if NUM_SCANS_PER_SESSION > 1 and os.path.exists(within_csv):
             try:
                 df = pd.read_csv(within_csv)
                 if not df.empty:
@@ -186,14 +251,23 @@ class DTIQualityControl:
                     self.qc_results['registration_within_qc'] = {
                         'status': 'PASS',
                         'csv_exists': True,
-                        'translation_mm': row.get('T1w_rigid_translation', 0),
-                        'rotation_deg': row.get('T1w_rigid_rotation', 0),
-                        'registration_status': row.get('T1w_rigid_status', 'Unknown')
+                        'rigid_dice': row.get('T1w_rigid_dice', 0),
+                        'affine_dice': row.get('T1w_affine_dice', 0),
+                        'rigid_status': row.get('T1w_rigid_status', 'Unknown'),
+                        'affine_status': row.get('T1w_affine_status', 'Unknown')
                     }
                     logging.info(f"Within registration: {row.get('T1w_rigid_status', 'Unknown')}")
             except Exception as e:
                 logging.error(f"Error reading within registration CSV: {e}")
                 self.qc_results['registration_within_qc'] = {'status': 'ERROR', 'csv_exists': False}
+        elif NUM_SCANS_PER_SESSION <= 1:
+            # Skip within subject registration if only one scan per session
+            self.qc_results['registration_within_qc'] = {
+                'status': 'SKIP',
+                'csv_exists': False,
+                'reason': f'Single scan per session (NUM_SCANS_PER_SESSION={NUM_SCANS_PER_SESSION})'
+            }
+            logging.info(f"Skipping within registration: Single scan per session (NUM_SCANS_PER_SESSION={NUM_SCANS_PER_SESSION})")
         
         # Read MNI registration CSV
         mni_csv = os.path.join(qc_dir, 'mni_registraction_qc.csv')
@@ -205,10 +279,8 @@ class DTIQualityControl:
                     self.qc_results['registration_mni_qc'] = {
                         'status': 'PASS',
                         'csv_exists': True,
-                        'rigid_translation_mm': row.get('T1w_rigid_translation', 0),
-                        'rigid_rotation_deg': row.get('T1w_rigid_rotation', 0),
-                        'affine_translation_mm': row.get('T1w_affine_translation', 0),
-                        'affine_rotation_deg': row.get('T1w_affine_rotation', 0),
+                        'rigid_dice': row.get('T1w_rigid_dice', 0),
+                        'affine_dice': row.get('T1w_affine_dice', 0),
                         'rigid_status': row.get('T1w_rigid_status', 'Unknown'),
                         'affine_status': row.get('T1w_affine_status', 'Unknown')
                     }
@@ -221,6 +293,7 @@ class DTIQualityControl:
         """Check for QC images existence only"""
         # Check topup images
         topup_dir = os.path.join(self.output_base_dir, 'B0_correction', self.subject_id)
+        topup_dir = self.find_session_directory(topup_dir)
         topup_images = 0
         if os.path.exists(topup_dir):
             topup_images = len(glob.glob(os.path.join(topup_dir, "QC-*.png")))
@@ -228,6 +301,7 @@ class DTIQualityControl:
         
         # Check skull stripping images and volumes
         skull_dir = os.path.join(self.output_base_dir, 'Skull_stripping', self.subject_id)
+        skull_dir = self.find_session_directory(skull_dir)
         skull_images = 0
         volumes = []
         if os.path.exists(skull_dir):
@@ -254,6 +328,7 @@ class DTIQualityControl:
         
         # Check eddy images
         eddy_dir = os.path.join(self.output_base_dir, 'Eddy_correction', self.subject_id)
+        eddy_dir = self.find_session_directory(eddy_dir)
         eddy_images = 0
         if os.path.exists(eddy_dir):
             eddy_images = len(glob.glob(os.path.join(eddy_dir, "QC-*.png")))
@@ -261,6 +336,7 @@ class DTIQualityControl:
         
         # Check DTI fit image
         dtifit_dir = os.path.join(self.output_base_dir, 'Dtifit', self.subject_id)
+        dtifit_dir = self.find_session_directory(dtifit_dir)
         dtifit_image = False
         if os.path.exists(dtifit_dir):
             dtifit_image = os.path.exists(os.path.join(dtifit_dir, f"QC-Dtifit-{self.subject_id}.png"))
@@ -269,6 +345,7 @@ class DTIQualityControl:
     def check_basic_statistics(self):
         """Check basic DTI statistics if FA/MD maps exist"""
         dtifit_dir = os.path.join(self.output_base_dir, 'Dtifit', self.subject_id)
+        dtifit_dir = self.find_session_directory(dtifit_dir)
         
         if 'dtifit_qc' not in self.qc_results:
             self.qc_results['dtifit_qc'] = {}
@@ -331,7 +408,10 @@ class DTIQualityControl:
         for qc_type in ['topup_qc', 'skull_stripping_qc', 'eddy_qc', 'registration_within_qc', 
                        'registration_mni_qc', 'dtifit_qc', 'file_existence_qc']:
             if qc_type in self.qc_results and 'status' in self.qc_results[qc_type]:
-                statuses.append(self.qc_results[qc_type]['status'])
+                status = self.qc_results[qc_type]['status']
+                # Ignore SKIP status in overall calculation
+                if status != 'SKIP':
+                    statuses.append(status)
         
         # Overall status logic
         if 'ERROR' in statuses or 'FAIL' in statuses:
@@ -372,6 +452,7 @@ class DTIQualityControl:
         """Generate summary CSV with key metrics"""
         summary_data = {
             'subject_id': self.subject_id,
+            'session': self.qc_results.get('session', 'N/A'),
             'timestamp': self.qc_results['timestamp'],
             'overall_status': self.qc_results['overall_status'],
             'topup_status': self.qc_results.get('topup_qc', {}).get('status', 'N/A'),
@@ -580,18 +661,19 @@ class DTIQualityControl:
                 if qc_key == 'topup_qc':
                     # Add topup QC image links - specific files only
                     topup_dir = os.path.join(self.output_base_dir, 'B0_correction', self.subject_id)
+                    topup_session = self.get_session_name(topup_dir)
+                    topup_dir = self.find_session_directory(topup_dir)
                     if os.path.exists(topup_dir):
-                        # Look for specific files mentioned
-                        specific_files = [
-                            f"QC-{self.subject_id}-scan#0-volume-0.png",
-                            f"QC-{self.subject_id}-scan#1-volume-0.png"
-                        ]
+                        # Look for QC images with flexible pattern matching
+                        image_files = glob.glob(os.path.join(topup_dir, "QC-*.png"))
                         image_links = []
-                        for img_name in specific_files:
-                            img_path = os.path.join(topup_dir, img_name)
-                            if os.path.exists(img_path):
+                        for img_path in image_files:
+                            img_name = os.path.basename(img_path)
+                            if topup_session:
+                                rel_path = f"../../../B0_correction/{self.subject_id}/{topup_session}/{img_name}"
+                            else:
                                 rel_path = f"../../../B0_correction/{self.subject_id}/{img_name}"
-                                image_links.append(f'<a href="{rel_path}" target="_blank">{img_name}</a>')
+                            image_links.append(f'<a href="{rel_path}" target="_blank">{img_name}</a>')
                         if image_links:
                             html_content += f"""
                             <tr><td>&nbsp;&nbsp;QC Images</td><td>{' | '.join(image_links)}</td></tr>"""
@@ -605,17 +687,19 @@ class DTIQualityControl:
                     
                     # Add skull stripping QC image links - specific files only
                     skull_dir = os.path.join(self.output_base_dir, 'Skull_stripping', self.subject_id)
+                    skull_session = self.get_session_name(skull_dir)
+                    skull_dir = self.find_session_directory(skull_dir)
                     if os.path.exists(skull_dir):
-                        specific_files = [
-                            "mask_bet_scan0_desc-qc.png",
-                            "mask_bet_scan1_desc-qc.png"
-                        ]
+                        # Look for QC images with flexible pattern matching
+                        image_files = glob.glob(os.path.join(skull_dir, "*desc-qc.png"))
                         image_links = []
-                        for img_name in specific_files:
-                            img_path = os.path.join(skull_dir, img_name)
-                            if os.path.exists(img_path):
+                        for img_path in image_files:
+                            img_name = os.path.basename(img_path)
+                            if skull_session:
+                                rel_path = f"../../../Skull_stripping/{self.subject_id}/{skull_session}/{img_name}"
+                            else:
                                 rel_path = f"../../../Skull_stripping/{self.subject_id}/{img_name}"
-                                image_links.append(f'<a href="{rel_path}" target="_blank">{img_name}</a>')
+                            image_links.append(f'<a href="{rel_path}" target="_blank">{img_name}</a>')
                         if image_links:
                             html_content += f"""
                             <tr><td>&nbsp;&nbsp;QC Images</td><td>{' | '.join(image_links)}</td></tr>"""
@@ -623,34 +707,46 @@ class DTIQualityControl:
                 elif qc_key == 'eddy_qc':
                     # Add eddy QC image links - specific files only
                     eddy_dir = os.path.join(self.output_base_dir, 'Eddy_correction', self.subject_id)
+                    eddy_session = self.get_session_name(eddy_dir)
+                    eddy_dir = self.find_session_directory(eddy_dir)
                     if os.path.exists(eddy_dir):
-                        specific_files = [
-                            f"QC-{self.subject_id}-scan#0-volume--1.png",
-                            f"QC-{self.subject_id}-scan#1-volume--1.png"
-                        ]
+                        # Look for QC images with flexible pattern matching
+                        image_files = glob.glob(os.path.join(eddy_dir, "QC-*.png"))
                         image_links = []
-                        for img_name in specific_files:
-                            img_path = os.path.join(eddy_dir, img_name)
-                            if os.path.exists(img_path):
+                        for img_path in image_files:
+                            img_name = os.path.basename(img_path)
+                            if eddy_session:
+                                rel_path = f"../../../Eddy_correction/{self.subject_id}/{eddy_session}/{img_name}"
+                            else:
                                 rel_path = f"../../../Eddy_correction/{self.subject_id}/{img_name}"
-                                image_links.append(f'<a href="{rel_path}" target="_blank">{img_name}</a>')
+                            image_links.append(f'<a href="{rel_path}" target="_blank">{img_name}</a>')
                         if image_links:
                             html_content += f"""
                             <tr><td>&nbsp;&nbsp;QC Images</td><td>{' | '.join(image_links)}</td></tr>"""
                     
                 elif qc_key == 'registration_within_qc':
-                    # Show CSV data from existing files
-                    csv_path = os.path.join(self.output_base_dir, 'QC', self.subject_id, 'within_subject_registraction_qc.csv')
-                    if os.path.exists(csv_path):
-                        rel_csv_path = f"../../../QC/{self.subject_id}/within_subject_registraction_qc.csv"
+                    # Check if within registration is skipped or available
+                    if qc_data.get('status') == 'SKIP':
                         html_content += f"""
-                        <tr><td>&nbsp;&nbsp;CSV Report</td><td><a href="{rel_csv_path}" target="_blank">within_subject_registraction_qc.csv</a></td></tr>"""
-                    # Add translation/rotation metrics from existing CSV
-                    if 'translation_mm' in qc_data and 'rotation_deg' in qc_data:
-                        html_content += f"""
-                        <tr><td>&nbsp;&nbsp;Translation</td><td>{qc_data['translation_mm']:.2f} mm</td></tr>
-                        <tr><td>&nbsp;&nbsp;Rotation</td><td>{qc_data['rotation_deg']:.2f}°</td></tr>
-                        <tr><td>&nbsp;&nbsp;Status</td><td>{qc_data.get('registration_status', 'Unknown')}</td></tr>"""
+                        <tr><td>&nbsp;&nbsp;Reason</td><td>{qc_data.get('reason', 'Skipped')}</td></tr>"""
+                    else:
+                        # Show CSV data from existing files
+                        csv_dir = os.path.join(self.output_base_dir, 'QC', self.subject_id)
+                        csv_session = self.get_session_name(csv_dir)
+                        csv_dir = self.find_session_directory(csv_dir)
+                        csv_path = os.path.join(csv_dir, 'within_subject_registraction_qc.csv')
+                        if os.path.exists(csv_path):
+                            if csv_session:
+                                rel_csv_path = f"../../../QC/{self.subject_id}/{csv_session}/within_subject_registraction_qc.csv"
+                            else:
+                                rel_csv_path = f"../../../QC/{self.subject_id}/within_subject_registraction_qc.csv"
+                            html_content += f"""
+                            <tr><td>&nbsp;&nbsp;CSV Report</td><td><a href="{rel_csv_path}" target="_blank">within_subject_registraction_qc.csv</a></td></tr>"""
+                        # Add Dice coefficient metrics from existing CSV
+                        if 'rigid_dice' in qc_data:
+                            html_content += f"""
+                            <tr><td>&nbsp;&nbsp;Rigid Dice</td><td>{qc_data['rigid_dice']:.4f}</td></tr>
+                            <tr><td>&nbsp;&nbsp;Rigid Status</td><td>{qc_data.get('rigid_status', 'Unknown')}</td></tr>"""
                     
                 elif qc_key == 'registration_mni_qc':
                     # Show CSV data from existing files
@@ -658,34 +754,48 @@ class DTIQualityControl:
                         ('mni_registraction_qc.csv', 'MNI Registration CSV'),
                         ('file_existance.csv', 'File Existence CSV')
                     ]
+                    csv_dir = os.path.join(self.output_base_dir, 'QC', self.subject_id)
+                    csv_session = self.get_session_name(csv_dir)
+                    csv_dir = self.find_session_directory(csv_dir)
                     for csv_file, csv_desc in csv_files:
-                        csv_path = os.path.join(self.output_base_dir, 'QC', self.subject_id, csv_file)
+                        csv_path = os.path.join(csv_dir, csv_file)
                         if os.path.exists(csv_path):
-                            rel_csv_path = f"../../../QC/{self.subject_id}/{csv_file}"
+                            if csv_session:
+                                rel_csv_path = f"../../../QC/{self.subject_id}/{csv_session}/{csv_file}"
+                            else:
+                                rel_csv_path = f"../../../QC/{self.subject_id}/{csv_file}"
                             html_content += f"""
                             <tr><td>&nbsp;&nbsp;{csv_desc}</td><td><a href="{rel_csv_path}" target="_blank">{csv_file}</a></td></tr>"""
                     
-                    # Add MNI registration metrics from existing CSV
-                    if 'rigid_translation_mm' in qc_data and 'rigid_rotation_deg' in qc_data:
+                    # Add MNI registration metrics from existing CSV (Dice coefficient)
+                    if 'rigid_dice' in qc_data:
                         html_content += f"""
-                        <tr><td>&nbsp;&nbsp;Rigid Translation</td><td>{qc_data['rigid_translation_mm']:.2f} mm</td></tr>
-                        <tr><td>&nbsp;&nbsp;Rigid Rotation</td><td>{qc_data['rigid_rotation_deg']:.2f}°</td></tr>
+                        <tr><td>&nbsp;&nbsp;Rigid Dice</td><td>{qc_data['rigid_dice']:.4f}</td></tr>
                         <tr><td>&nbsp;&nbsp;Rigid Status</td><td>{qc_data.get('rigid_status', 'Unknown')}</td></tr>"""
-                    if 'affine_translation_mm' in qc_data and 'affine_rotation_deg' in qc_data:
+                    if 'affine_dice' in qc_data:
                         html_content += f"""
-                        <tr><td>&nbsp;&nbsp;Affine Translation</td><td>{qc_data['affine_translation_mm']:.2f} mm</td></tr>
-                        <tr><td>&nbsp;&nbsp;Affine Rotation</td><td>{qc_data['affine_rotation_deg']:.2f}°</td></tr>
+                        <tr><td>&nbsp;&nbsp;Affine Dice</td><td>{qc_data['affine_dice']:.4f}</td></tr>
                         <tr><td>&nbsp;&nbsp;Affine Status</td><td>{qc_data.get('affine_status', 'Unknown')}</td></tr>"""
                     
                 elif qc_key == 'dtifit_qc':
-                    # Add DTI fit QC image link - specific file only
+                    # Add DTI fit QC image links with flexible pattern matching
                     dtifit_dir = os.path.join(self.output_base_dir, 'Dtifit', self.subject_id)
-                    specific_file = f"QC-Dtifit-{self.subject_id}.png"
-                    img_path = os.path.join(dtifit_dir, specific_file)
-                    if os.path.exists(img_path):
-                        rel_path = f"../../../Dtifit/{self.subject_id}/{specific_file}"
-                        html_content += f"""
-                        <tr><td>&nbsp;&nbsp;QC Image</td><td><a href="{rel_path}" target="_blank">{specific_file}</a></td></tr>"""
+                    dtifit_session = self.get_session_name(dtifit_dir)
+                    dtifit_dir = self.find_session_directory(dtifit_dir)
+                    if os.path.exists(dtifit_dir):
+                        # Look for QC images with flexible pattern matching
+                        image_files = glob.glob(os.path.join(dtifit_dir, "QC-*.png"))
+                        image_links = []
+                        for img_path in image_files:
+                            img_name = os.path.basename(img_path)
+                            if dtifit_session:
+                                rel_path = f"../../../Dtifit/{self.subject_id}/{dtifit_session}/{img_name}"
+                            else:
+                                rel_path = f"../../../Dtifit/{self.subject_id}/{img_name}"
+                            image_links.append(f'<a href="{rel_path}" target="_blank">{img_name}</a>')
+                        if image_links:
+                            html_content += f"""
+                            <tr><td>&nbsp;&nbsp;QC Images</td><td>{' | '.join(image_links)}</td></tr>"""
                 
 
                 
@@ -760,6 +870,7 @@ class DTIQualityControl:
                 <table>
                     <tr>
                         <th>Subject ID</th>
+                        <th>Session</th>
                         <th>Overall Status</th>
                         <th>Brain Volume (mL)</th>
                         <th>FA Mean</th>
@@ -799,9 +910,11 @@ class DTIQualityControl:
                 except:
                     brain_vol = 'N/A'
                 
+                session_info = row.get('session', 'N/A')
                 html_content += f"""
                     <tr>
                         <td>{row['subject_id']}</td>
+                        <td>{session_info}</td>
                         <td><span class="{status_class}">{row['overall_status']}</span></td>
                         <td>{brain_vol}</td>
                         <td>{fa_mean}</td>
