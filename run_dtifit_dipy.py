@@ -16,6 +16,7 @@ from dipy.io import read_bvals_bvecs
 from dipy.core.gradients import gradient_table
 import nibabel as nib
 import matplotlib.pyplot as plt
+from utilities import get_sessions
 
 
 # Import configuration
@@ -135,36 +136,42 @@ if __name__ == "__main__":
     else:
         subject_id = sys.argv[1]
 
-    if not os.path.exists(DTIFIT_OUT_FOLDER):
-        os.mkdir(DTIFIT_OUT_FOLDER)
+    os.makedirs(DTIFIT_OUT_FOLDER, exist_ok=True)
 
-    input_subject_folder = os.path.join(DTIFIT_INPUT_FOLDER,subject_id)
-    out_folder = os.path.join(DTIFIT_OUT_FOLDER,subject_id)
-    if not os.path.exists(out_folder):
-        os.mkdir(out_folder)
-
-    # B0 names
-    if DTIFIT_DWI_INPUT_NAME:
-        dwi_input_name = os.path.join(input_subject_folder,DTIFIT_DWI_INPUT_NAME)
+    sessions = get_sessions(os.path.join(DTIFIT_INPUT_FOLDER,subject_id))
+    print(sessions)
+    if not sessions:
+        input_subject_folders = [os.path.join(DTIFIT_INPUT_FOLDER,subject_id)]
+        out_folders = [os.path.join(DTIFIT_OUT_FOLDER,subject_id)]
     else:
-        dwi_input_name = os.path.join(input_subject_folder,f'dwi_reg_affine.nii.gz')
+        input_subject_folders = [os.path.join(DTIFIT_INPUT_FOLDER,subject_id,sess) for sess in sessions]
+        out_folders = [os.path.join(DTIFIT_OUT_FOLDER,subject_id,sess) for sess in sessions]
 
-    if DTIFIT_BVEC_INPUT_NAME:
-        bvec_input_name = os.path.join(input_subject_folder,DTIFIT_BVEC_INPUT_NAME)
-    else:
-        bvec_input_name = os.path.join(input_subject_folder,f'bvec_reg_affine.bvec')
 
-    if DTIFIT_BVAL_INPUT_NAME:
-        bval_input_name = os.path.join(input_subject_folder,DTIFIT_BVAL_INPUT_NAME)
-    else:
-        bval_input_name = os.path.join(input_subject_folder,f'bval_final.bval')
+    for input_subject_folder, out_folder in zip(input_subject_folders,out_folders):
+        os.makedirs(out_folder, exist_ok=True)
+        # B0 names
+        if DTIFIT_DWI_INPUT_NAME:
+            dwi_input_name = os.path.join(input_subject_folder,DTIFIT_DWI_INPUT_NAME)
+        else:
+            dwi_input_name = os.path.join(input_subject_folder,f'dwi_reg_affine.nii.gz')
 
-    if MASK_NAME:
-        mask_input_name = os.path.join(input_subject_folder,MASK_NAME)
-    else:
-        mask_input_name = os.path.join(input_subject_folder,'mask_reg_affine.nii.gz')
+        if DTIFIT_BVEC_INPUT_NAME:
+            bvec_input_name = os.path.join(input_subject_folder,DTIFIT_BVEC_INPUT_NAME)
+        else:
+            bvec_input_name = os.path.join(input_subject_folder,f'bvec_reg_affine.bvec')
 
-    fa_img, V1 = dipy_dtifit(dwi_input_name, bval_input_name, bvec_input_name, mask_input_name, out_folder)
-    image_series = [fa_img, V1]
-    dtifit_qc_image(subject_id, out_folder, image_series, DTIFIT_QC_SLICES, suptitle=f'Dtifit QC')    
-   
+        if DTIFIT_BVAL_INPUT_NAME:
+            bval_input_name = os.path.join(input_subject_folder,DTIFIT_BVAL_INPUT_NAME)
+        else:
+            bval_input_name = os.path.join(input_subject_folder,f'bval_final.bval')
+
+        if MASK_NAME:
+            mask_input_name = os.path.join(input_subject_folder,MASK_NAME)
+        else:
+            mask_input_name = os.path.join(input_subject_folder,'mask_reg_affine.nii.gz')
+
+        fa_img, V1 = dipy_dtifit(dwi_input_name, bval_input_name, bvec_input_name, mask_input_name, out_folder)
+        image_series = [fa_img, V1]
+        dtifit_qc_image(subject_id, out_folder, image_series, DTIFIT_QC_SLICES, suptitle=f'Dtifit QC')    
+    

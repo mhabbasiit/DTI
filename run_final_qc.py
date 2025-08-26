@@ -21,6 +21,7 @@ import sys
 from scipy.spatial.transform import Rotation
 from scipy import linalg
 from utilities import find_file
+from utilities import get_sessions
 
 # Import configuration
 from config import (
@@ -30,15 +31,15 @@ from config import (
     SKULL_STRIP_OUTPUT_FOLDER,
     REG_MNI_OUTPUT_FOLDER,
     MODALITY_PATTERNS,
-    TRANSLATION_PASS, 
-    TRANSLATION_WARN,
-    ROTATION_PASS,
-    ROTATION_WARN,
     REG_MNI_OUTPUT_FOLDER,
+    NUM_SCANS_PER_SESSION
+)
+
+if NUM_SCANS_PER_SESSION>1:
+    from config import (
     REG_WITHIN_B0_INPUT_FOLDER,
     REG_WITHIN_B0_INPUT_NAMES,
-    REG_WITHIN_OUTPUT_FOLDER
-)
+    REG_WITHIN_OUTPUT_FOLDER)
 
 # Logging setup
 log_dir = LOG_DIR  # Use LOG_DIR from config.py
@@ -98,6 +99,8 @@ ROTATION_PASS = 1.5       # ≤1.5° ⇒ Passed
 ROTATION_WARN = 3.0       # 1.5–3° ⇒ Warning
                           # >3° ⇒ Failed
 
+DICE_PASS = 0.8
+DICE_WARN = 0.7
 
 # -----------------------------------------------------------------------------
 # Helper: find all sessions for a subject - FIXED for AIBL dataset structure
@@ -130,7 +133,8 @@ def find_subject_sessions(subj_dir, derivatives_dir, modality='Diffusion'):
     sessions = set()  # Use set to avoid duplicates
     
     # Extract subject ID from directory path
-    subj_id = os.path.basename(subj_dir)
+    #subj_id = os.path.basename(subj_dir)
+    subj_id = subj_dir
     
     # STEP 1: Check skullstrip directory for ALL T1 modality directories
     aibl_skullstrip_path = os.path.join(skullstrip_dir, subj_id)
@@ -205,7 +209,7 @@ def find_subject_sessions(subj_dir, derivatives_dir, modality='Diffusion'):
 def check_file_existence(subject_dirs, derivatives_dir):
     records = []
     for subj in subject_dirs:
-        sid = os.path.basename(subj)
+        sid = subj #os.path.basename(subj)
         logging.info(f"[QC] Checking existence for subject {sid}")
         
         # Find all sessions (timestamps) for this subject
@@ -387,7 +391,7 @@ def check_file_existence(subject_dirs, derivatives_dir):
 def analyze_registration_matrices(subject_dirs, derivatives_dir, modality, mni_template, list_patterns):
     registration_results = []
     for subj in subject_dirs:
-        sid = os.path.basename(subj)
+        sid = subj
         logging.info(f"[QC] Analyzing registration matrices for subject {sid}")
         
         # Find all sessions for this subject
@@ -444,14 +448,14 @@ def analyze_registration_matrices(subject_dirs, derivatives_dir, modality, mni_t
                 'session_id': unique_session_id,  # Use same unique ID as in file existence check
                 'session': session,
                 'T1w_rigid_status': 'N/A',
-                'T1w_rigid_translation': None,
-                'T1w_rigid_rotation': None,
-                'T1w_rigid_rotation_status': 'N/A',
-                'T1w_rigid_rotation_needed': False,
+                'T1w_rigid_dice': None,
+                # 'T1w_rigid_rotation': None,
+                # 'T1w_rigid_rotation_status': 'N/A',
+                # 'T1w_rigid_rotation_needed': False,
                 'T1w_affine_status': 'N/A',
-                'T1w_affine_translation': None,
-                'T1w_affine_rotation': None,
-                'T1w_affine_rotation_needed': False
+                'T1w_affine_dice': None,
+                # 'T1w_affine_rotation': None,
+                # 'T1w_affine_rotation_needed': False
             }
             
             # Debug directory contents
@@ -604,63 +608,70 @@ def analyze_registration_matrices(subject_dirs, derivatives_dir, modality, mni_t
                             except:
                                 rot = np.nan
                         
-                        # Apply QC thresholds
-                        if trans <= TRANSLATION_PASS:
+                        if dice >= DICE_PASS:
                             status = 'Passed'
-                        elif trans <= TRANSLATION_WARN:
+                        elif dice>= DICE_WARN:
                             status = 'Warning'
                         else:
                             status = 'Failed'
+                        # # Apply QC thresholds
+                        # if trans <= TRANSLATION_PASS:
+                        #     status = 'Passed'
+                        # elif trans <= TRANSLATION_WARN:
+                        #     status = 'Warning'
+                        # else:
+                        #     status = 'Failed'
                         
-                        # Using thresholds for rotation
-                        if not np.isnan(rot):
-                            if rot <= ROTATION_PASS:
-                                rot_status = 'Passed'
-                            elif rot <= ROTATION_WARN:
-                                rot_status = 'Warning'
-                            else:
-                                rot_status = 'Failed'
-                        else:
-                            rot_status = 'N/A'
+                        # # Using thresholds for rotation
+                        # if not np.isnan(rot):
+                        #     if rot <= ROTATION_PASS:
+                        #         rot_status = 'Passed'
+                        #     elif rot <= ROTATION_WARN:
+                        #         rot_status = 'Warning'
+                        #     else:
+                        #         rot_status = 'Failed'
+                        # else:
+                        #     rot_status = 'N/A'
                         
-                        need = rot > ROTATION_PASS if not np.isnan(rot) else False
+                        # need = rot > ROTATION_PASS if not np.isnan(rot) else False
                         
-                        result[f'T1w_{tag}_translation'] = float(trans)
-                        result[f'T1w_{tag}_rotation']    = float(rot) if not np.isnan(rot) else None
-                        result[f'T1w_{tag}_rotation_status'] = rot_status
-                        result[f'T1w_{tag}_rotation_needed'] = need
+                        # result[f'T1w_{tag}_translation'] = float(trans)
+                        # result[f'T1w_{tag}_rotation']    = float(rot) if not np.isnan(rot) else None
+                        # result[f'T1w_{tag}_rotation_status'] = rot_status
+                        # result[f'T1w_{tag}_rotation_needed'] = need
+                        result[f'T1w_{tag}_dice'] = float(dice)
                         result[f'T1w_{tag}_status']      = status
                         
                         # Print results
                         logging.info(f"[QC] {tag.capitalize()} registration quality (vs MNI template):")
                         logging.info(f"[QC] {tag.capitalize()} translation: {trans:.2f}mm ({status})")
-                        if not np.isnan(rot):
-                            logging.info(f"[QC] {tag.capitalize()} rotation: {rot:.2f}° ({rot_status}, needed: {need})")
-                        else:
-                            logging.info(f"[QC] {tag.capitalize()} rotation: N/A (could not calculate)")
+                        # if not np.isnan(rot):
+                        #     logging.info(f"[QC] {tag.capitalize()} rotation: {rot:.2f}° ({rot_status}, needed: {need})")
+                        # else:
+                        #     logging.info(f"[QC] {tag.capitalize()} rotation: N/A (could not calculate)")
                         
                     except Exception as e:
                         logging.error(f"[QC] Error processing template comparison for {sid} {modality_name} session {session_id}: {e}")
-                        result[f'T1w_{tag}_translation'] = None
-                        result[f'T1w_{tag}_rotation']    = None
+                        #result[f'T1w_{tag}_translation'] = None
+                        result[f'T1w_{tag}_dice']    = None
                         result[f'T1w_{tag}_status']      = f'Error: {str(e)[:50]}...'
                         
                 elif not mni_template_path:
                     logging.warning(f"[QC] No MNI template available for comparison")
-                    result[f'T1w_{tag}_translation'] = None
-                    result[f'T1w_{tag}_rotation']    = None
+                    #result[f'T1w_{tag}_translation'] = None
+                    result[f'T1w_{tag}_dice']    = None
                     result[f'T1w_{tag}_status']      = 'N/A (No template)'
                     
                 elif not img_warped:
                     logging.warning(f"[QC] No {tag} warped image found for {sid} {modality_name} session {session_id}")
-                    result[f'T1w_{tag}_translation'] = None
-                    result[f'T1w_{tag}_rotation']    = None
+                    #result[f'T1w_{tag}_translation'] = None
+                    result[f'T1w_{tag}_dice']    = None
                     result[f'T1w_{tag}_status']      = 'N/A (Missing warped file)'
                     
                 else:
                     logging.error(f"[QC] Template or warped file does not exist")
-                    result[f'T1w_{tag}_translation'] = None
-                    result[f'T1w_{tag}_rotation']    = None
+                    #result[f'T1w_{tag}_translation'] = None
+                    result[f'T1w_{tag}_dice']    = None
                     result[f'T1w_{tag}_status']      = 'N/A (File not found)'
             
             registration_results.append(result)
@@ -678,35 +689,62 @@ if __name__ == "__main__":
 
     ## Check file existence
     #######################################
-    subject_paths = [os.path.join(REG_MNI_OUTPUT_FOLDER,subject_id)]
-    df_files = check_file_existence(subject_paths, REG_MNI_OUTPUT_FOLDER)
-    df_files.to_csv(os.path.join(QC_DIR,subject_id,'file_existance.csv'), index=False)
+    sessions = get_sessions(os.path.join(REG_MNI_OUTPUT_FOLDER,subject_id))
+    print(sessions)
+    if not sessions:
+        subject_paths = [[os.path.join(REG_MNI_OUTPUT_FOLDER,subject_id)]]
+        csv_out_paths = [os.path.join(QC_DIR,subject_id,'file_existance.csv')]
+    else:
+        subject_paths = [[os.path.join(REG_MNI_OUTPUT_FOLDER,subject_id,sess)] for sess in sessions]
+        csv_out_paths = [os.path.join(QC_DIR,subject_id,sess,'file_existance.csv') for sess in sessions]
+
+    for subject_path, csv_out in zip(subject_paths,csv_out_paths):
+        print(subject_path)
+        os.makedirs(os.path.dirname(csv_out),exist_ok=True)
+        df_files = check_file_existence(subject_path, REG_MNI_OUTPUT_FOLDER)
+        df_files.to_csv(csv_out, index=False)
 
     ## Check within subject registration
     #######################################
-    subject_paths = [os.path.join(REG_MNI_OUTPUT_FOLDER,subject_id)]
-    input_b0_subject_folder = os.path.join(REG_WITHIN_B0_INPUT_FOLDER,subject_id)
-    if REG_WITHIN_B0_INPUT_NAMES:
-        base_b0 = REG_WITHIN_B0_INPUT_NAMES[0]
-    else:
-        base_b0 = os.path.join(input_b0_subject_folder,'mask_bet_scan0.nii.gz') 
-    patterns_within = [
-        ('rigid', ["*b0_reg_*_to_0.nii.gz"]),
-        ('affine', ["None",
-                    "None"])
-    ]
-    df_within = analyze_registration_matrices(subject_paths, REG_WITHIN_OUTPUT_FOLDER, 'Diffusion',base_b0,patterns_within)
-    df_within.to_csv(os.path.join(QC_DIR,subject_id,'within_subject_registraction_qc.csv'), index=False)
+    if NUM_SCANS_PER_SESSION>1:
+        if not sessions:
+            subject_paths = [[os.path.join(REG_MNI_OUTPUT_FOLDER,subject_id)]]
+            input_b0_subject_folders = [os.path.join(REG_WITHIN_B0_INPUT_FOLDER,subject_id)]
+            csv_out_paths = [os.path.join(QC_DIR,subject_id,'within_subject_registraction_qc.csv')]
+        else:
+            subject_paths = [[os.path.join(REG_MNI_OUTPUT_FOLDER,subject_id,sess)] for sess in sessions]
+            input_b0_subject_folders = [os.path.join(REG_WITHIN_B0_INPUT_FOLDER,subject_id,sess) for sess in sessions]
+            csv_out_paths = [os.path.join(QC_DIR,subject_id,sess,'within_subject_registraction_qc.csv') for sess in sessions]
+
+        for subject_path, input_b0_subject_folder, csv_out in zip(subject_paths,input_b0_subject_folders, csv_out_paths):    
+            if REG_WITHIN_B0_INPUT_NAMES:
+                base_b0 = REG_WITHIN_B0_INPUT_NAMES[0]
+            else:
+                base_b0 = os.path.join(input_b0_subject_folder,'mask_bet_scan0.nii.gz') 
+            patterns_within = [
+                ('rigid', ["*b0_reg_*_to_0.nii.gz"]),
+                ('affine', ["None",
+                            "None"])
+            ]
+            df_within = analyze_registration_matrices(subject_path, REG_WITHIN_OUTPUT_FOLDER, 'Diffusion',base_b0,patterns_within)
+            df_within.to_csv(csv_out, index=False)
 
     ## Check MNI registration
-    ####################################3
-    subject_paths = [os.path.join(REG_MNI_OUTPUT_FOLDER,subject_id)]
-    patterns_mni = [
-        ('rigid', ["*b0_reg_rigid.nii.gz", 
-                    "*b0*reg*rigid.nii.gz"]),
-        ('affine', ["*b0_reg_affine.nii.gz",
-                    "*b0*reg*affine.nii.gz"])
-    ]
-    df_mni = analyze_registration_matrices(subject_paths, REG_MNI_OUTPUT_FOLDER, 'Diffusion',TEMPLATE_PATH,patterns_mni)
-    df_mni.to_csv(os.path.join(QC_DIR,subject_id,'mni_registraction_qc.csv'), index=False)
+    ####################################
+    if not sessions:
+        subject_paths = [[os.path.join(REG_MNI_OUTPUT_FOLDER,subject_id)]]
+        csv_out_paths = [os.path.join(QC_DIR,subject_id,'mni_registraction_qc.csv')]
+    else:
+        subject_paths = [[os.path.join(REG_MNI_OUTPUT_FOLDER,subject_id,sess)] for sess in sessions]
+        csv_out_paths = [os.path.join(QC_DIR,subject_id,sess,'mni_registraction_qc.csv') for sess in sessions]
+    for subject_path, csv_out in zip(subject_paths,csv_out_paths):    
+    #subject_paths = [os.path.join(REG_MNI_OUTPUT_FOLDER,subject_id)]
+        patterns_mni = [
+            ('rigid', ["*b0_reg_rigid.nii.gz", 
+                        "*b0*reg*rigid.nii.gz"]),
+            ('affine', ["*b0_reg_affine.nii.gz",
+                        "*b0*reg*affine.nii.gz"])
+        ]
+        df_mni = analyze_registration_matrices(subject_path, REG_MNI_OUTPUT_FOLDER, 'Diffusion',TEMPLATE_PATH,patterns_mni)
+        df_mni.to_csv(csv_out, index=False)
 
