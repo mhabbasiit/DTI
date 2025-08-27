@@ -1,25 +1,89 @@
-# Description
-This repository contains Python code to perform processing of Diffusion MRI data. At present, the only distortion correction supported is top-up correctio,n which requires an extra reversed polarity acquisition
+# Diffusion MRI Preprocessing Pipeline
 
-# Prerequisites
+This repository contains Python code to perform preprocessing of diffusion MRI (dMRI) data.  
+At present, the only distortion correction supported is **top-up correction**, which requires an additional reversed polarity acquisition.  
 
-* FSL (https://fsl.fmrib.ox.ac.uk/fsl/)
-* ANTs (https://github.com/ANTsX/ANTs)
-* Dipy (https://docs.dipy.org/stable/user_guide/installation) 
+---
 
-# Steps
+## Prerequisites
 
-Paths and naming of files is controlled by the config.py file.
-Please see config_hcpag.py for an example of configuration for the HCP-Aging dataset.
-The steps this repository considers are:
+- [FSL](https://fsl.fmrib.ox.ac.uk/fsl/)  
+- [ANTs](https://github.com/ANTsX/ANTs)  
+- [DIPY](https://docs.dipy.org/stable/user_guide/installation)  
 
-1. Topup Correction: b0_correction.py
-2. Eddy Correction: process_eddy.py
-3. Brain Extraction: brain_extraction.py
-4. Merging of Acquisitions (Optional, if the session is split into multiple scans): reg_within_fsl.py
-5. Registration to MNI Space using Rigid + Affine transformation: run_reg_mni.py
-6. DTI Model Fitting: run_dtifit_dipy.py
-7. Quality control of final output: run_final_qc.py
-8. Generate an HTML QC report for all individual subjects and overall: dti_qc.py
+---
 
-All the files consider the subject identifier as input (They work on a subject-by-subject basis). An example of how to parallelize this in a slurm environment is shown in run_topup.slurm  (https://github.com/mhabbasiit/DTI/blob/master/run_topup.slurm) 
+## Configuration
+
+Paths and file naming are controlled by `config.py`.  
+See `config_hcpag.py` for an example configuration for the HCP-Aging dataset.  
+
+All scripts work on a **subject-by-subject** basis.  
+An example of parallelization in a SLURM environment is provided in `run_topup.slurm`.  
+
+---
+
+## Processing Steps
+
+### 1. Topup Correction — `b0_correction.py`
+Correct susceptibility-induced distortions using FSL TOPUP (Andersson et al., 2003).  
+This step estimates a field map from images with opposite phase-encoding directions and applies it to unwarp distorted diffusion volumes.  
+
+**Reference:** Andersson, J.L.R., Skare, S., & Ashburner, J. (2003). *NeuroImage, 20(2), 870–888.*
+
+---
+
+### 2. Eddy Current and Motion Correction — `process_eddy.py`
+Correct distortions caused by eddy currents and subject motion using FSL EDDY (Andersson & Sotiropoulos, 2016).  
+Includes slice-to-volume correction and outlier replacement.  
+
+**Reference:** Andersson, J.L.R., & Sotiropoulos, S.N. (2016). *NeuroImage, 125, 1063–1078.*
+
+---
+
+### 3. Brain Extraction — `brain_extraction.py`
+Remove non-brain tissue using FSL BET (Smith, 2002).  
+
+**Reference:** Smith, S.M. (2002). *Human Brain Mapping, 17(3), 143–155.*
+
+---
+
+### 4. Merging of Acquisitions — `reg_within_fsl.py`
+Align and merge multiple runs using FSL FLIRT.  
+Transformations are also applied to b-vectors.  
+
+---
+
+### 5. Registration to MNI Space — `run_reg_mni.py`
+Register diffusion-derived maps to the MNI152 template using a two-step approach (rigid + affine) with FSL FLIRT.  
+Corresponding b-vectors are transformed as well.  
+
+---
+
+### 6. Diffusion Tensor Model Fitting — `run_dtifit_dipy.py`
+Fit a diffusion tensor model using DIPY (Garyfallidis et al., 2014).  
+Outputs include FA, MD, RD, and AD maps.  
+
+**References:**  
+- Basser, P.J., et al. (1994). *Biophysical Journal, 66(1), 259–267.*  
+- Alexander, A.L., et al. (2007). *Neurotherapeutics, 4(3), 316–329.*  
+- Garyfallidis, E., et al. (2014). *Frontiers in Neuroinformatics, 8, 8.*  
+
+---
+
+### 7. Quality Control of Final Outputs — `run_final_qc.py`
+Perform automated QC checks, including:  
+- File existence validation  
+- Dice coefficient calculation for registration accuracy (Zou et al., 2004)  
+
+**Reference:** Zou, K.H., et al. (2004). *Academic Radiology, 11(2), 178–189.*  
+
+---
+
+### 8. Generation of HTML QC Reports — `dti_qc.py`
+Generate automated QC reports summarizing:  
+- Raw vs. corrected b0 volumes  
+- Eddy-corrected vs. uncorrected volumes  
+- Brain extraction evaluation  
+- FA and color FA maps  
+- Registration metrics  
