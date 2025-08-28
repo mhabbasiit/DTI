@@ -15,8 +15,6 @@ It generates QC images and reports for each step of the DTI processing:
 5. Registration to MNI
 6. DTI fit
 
-Based on the processing structure used in HCP-Dev processing pipeline.
-
 Author: Mohammad Abbasi (mabbasi@stanford.edu)
 Created: 2025
 """
@@ -36,6 +34,7 @@ import seaborn as sns
 from datetime import datetime
 import logging
 from pathlib import Path
+from urllib.parse import quote
 
 # Import configuration
 try:
@@ -587,6 +586,19 @@ class DTIQualityControl:
                     border-top: 2px solid #dee2e6;
                     color: #6c757d;
                 }}
+                
+                .image-preview {{
+                    display: inline-block;
+                    margin: 5px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    transition: transform 0.2s;
+                }}
+                
+                .image-preview:hover {{
+                    transform: scale(1.05);
+                    border-color: #007bff;
+                }}
             </style>
         </head>
         <body>
@@ -641,7 +653,7 @@ class DTIQualityControl:
         
         # Add each QC section to the same table
         qc_sections = [
-            ('topup_qc', 'Top up Correction'),
+            ('topup_qc', 'Topup Correction'),
             ('skull_stripping_qc', 'Skull Stripping'),
             ('eddy_qc', 'Eddy Correction'), 
             ('registration_within_qc', 'Within-Session Registration'),
@@ -670,13 +682,13 @@ class DTIQualityControl:
                         for img_path in image_files:
                             img_name = os.path.basename(img_path)
                             if topup_session:
-                                rel_path = f"../../../B0_correction/{self.subject_id}/{topup_session}/{img_name}"
+                                rel_path = f"../../B0_correction/{self.subject_id}/{topup_session}/{quote(img_name)}"
                             else:
-                                rel_path = f"../../../B0_correction/{self.subject_id}/{img_name}"
-                            image_links.append(f'<a href="{rel_path}" target="_blank">{img_name}</a>')
+                                rel_path = f"../../B0_correction/{self.subject_id}/{quote(img_name)}"
+                            image_links.append(f'<a href="{rel_path}" target="_blank" class="image-preview"><img src="{rel_path}" style="max-width:300px; height:auto;" alt="{img_name}" title="Click to view full size"></a>')
                         if image_links:
                             html_content += f"""
-                            <tr><td>&nbsp;&nbsp;QC Images</td><td>{' | '.join(image_links)}</td></tr>"""
+                            <tr><td>&nbsp;&nbsp;QC Images</td><td>{'<br>'.join(image_links)}</td></tr>"""
                     
                 elif qc_key == 'skull_stripping_qc':
                     # Show brain volumes from CSV
@@ -696,13 +708,13 @@ class DTIQualityControl:
                         for img_path in image_files:
                             img_name = os.path.basename(img_path)
                             if skull_session:
-                                rel_path = f"../../../Skull_stripping/{self.subject_id}/{skull_session}/{img_name}"
+                                rel_path = f"../../Skull_stripping/{self.subject_id}/{skull_session}/{quote(img_name)}"
                             else:
-                                rel_path = f"../../../Skull_stripping/{self.subject_id}/{img_name}"
-                            image_links.append(f'<a href="{rel_path}" target="_blank">{img_name}</a>')
+                                rel_path = f"../../Skull_stripping/{self.subject_id}/{quote(img_name)}"
+                            image_links.append(f'<a href="{rel_path}" target="_blank" class="image-preview"><img src="{rel_path}" style="max-width:300px; height:auto;" alt="{img_name}" title="Click to view full size"></a>')
                         if image_links:
                             html_content += f"""
-                            <tr><td>&nbsp;&nbsp;QC Images</td><td>{' | '.join(image_links)}</td></tr>"""
+                            <tr><td>&nbsp;&nbsp;QC Images</td><td>{'<br>'.join(image_links)}</td></tr>"""
                     
                 elif qc_key == 'eddy_qc':
                     # Add eddy QC image links - specific files only
@@ -716,13 +728,13 @@ class DTIQualityControl:
                         for img_path in image_files:
                             img_name = os.path.basename(img_path)
                             if eddy_session:
-                                rel_path = f"../../../Eddy_correction/{self.subject_id}/{eddy_session}/{img_name}"
+                                rel_path = f"../../Eddy_correction/{self.subject_id}/{eddy_session}/{quote(img_name)}"
                             else:
-                                rel_path = f"../../../Eddy_correction/{self.subject_id}/{img_name}"
-                            image_links.append(f'<a href="{rel_path}" target="_blank">{img_name}</a>')
+                                rel_path = f"../../Eddy_correction/{self.subject_id}/{quote(img_name)}"
+                            image_links.append(f'<a href="{rel_path}" target="_blank" class="image-preview"><img src="{rel_path}" style="max-width:300px; height:auto;" alt="{img_name}" title="Click to view full size"></a>')
                         if image_links:
                             html_content += f"""
-                            <tr><td>&nbsp;&nbsp;QC Images</td><td>{' | '.join(image_links)}</td></tr>"""
+                            <tr><td>&nbsp;&nbsp;QC Images</td><td>{'<br>'.join(image_links)}</td></tr>"""
                     
                 elif qc_key == 'registration_within_qc':
                     # Check if within registration is skipped or available
@@ -737,9 +749,9 @@ class DTIQualityControl:
                         csv_path = os.path.join(csv_dir, 'within_subject_registraction_qc.csv')
                         if os.path.exists(csv_path):
                             if csv_session:
-                                rel_csv_path = f"../../../QC/{self.subject_id}/{csv_session}/within_subject_registraction_qc.csv"
+                                rel_csv_path = f"../../QC/{self.subject_id}/{csv_session}/{quote('within_subject_registraction_qc.csv')}"
                             else:
-                                rel_csv_path = f"../../../QC/{self.subject_id}/within_subject_registraction_qc.csv"
+                                rel_csv_path = f"../../QC/{self.subject_id}/{quote('within_subject_registraction_qc.csv')}"
                             html_content += f"""
                             <tr><td>&nbsp;&nbsp;CSV Report</td><td><a href="{rel_csv_path}" target="_blank">within_subject_registraction_qc.csv</a></td></tr>"""
                         # Add Dice coefficient metrics from existing CSV
@@ -761,9 +773,9 @@ class DTIQualityControl:
                         csv_path = os.path.join(csv_dir, csv_file)
                         if os.path.exists(csv_path):
                             if csv_session:
-                                rel_csv_path = f"../../../QC/{self.subject_id}/{csv_session}/{csv_file}"
+                                rel_csv_path = f"../../QC/{self.subject_id}/{csv_session}/{quote(csv_file)}"
                             else:
-                                rel_csv_path = f"../../../QC/{self.subject_id}/{csv_file}"
+                                rel_csv_path = f"../../QC/{self.subject_id}/{quote(csv_file)}"
                             html_content += f"""
                             <tr><td>&nbsp;&nbsp;{csv_desc}</td><td><a href="{rel_csv_path}" target="_blank">{csv_file}</a></td></tr>"""
                     
@@ -789,13 +801,13 @@ class DTIQualityControl:
                         for img_path in image_files:
                             img_name = os.path.basename(img_path)
                             if dtifit_session:
-                                rel_path = f"../../../Dtifit/{self.subject_id}/{dtifit_session}/{img_name}"
+                                rel_path = f"../../Dtifit/{self.subject_id}/{dtifit_session}/{quote(img_name)}"
                             else:
-                                rel_path = f"../../../Dtifit/{self.subject_id}/{img_name}"
-                            image_links.append(f'<a href="{rel_path}" target="_blank">{img_name}</a>')
+                                rel_path = f"../../Dtifit/{self.subject_id}/{quote(img_name)}"
+                            image_links.append(f'<a href="{rel_path}" target="_blank" class="image-preview"><img src="{rel_path}" style="max-width:300px; height:auto;" alt="{img_name}" title="Click to view full size"></a>')
                         if image_links:
                             html_content += f"""
-                            <tr><td>&nbsp;&nbsp;QC Images</td><td>{' | '.join(image_links)}</td></tr>"""
+                            <tr><td>&nbsp;&nbsp;QC Images</td><td>{'<br>'.join(image_links)}</td></tr>"""
                 
 
                 
