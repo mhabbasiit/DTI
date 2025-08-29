@@ -200,6 +200,28 @@ Dice for overlap validation: Zou, K.H., et al. (2004). Academic Radiology, 11(2)
 
  - https://pubmed.ncbi.nlm.nih.gov/14974593/
 
+
+---
+
+### 9. Utility Functions — `utilities.py`
+
+Provides supporting functions used across the diffusion MRI preprocessing pipeline.
+
+
+Key functionalities:
+
+- Session Detection — automatically identifies session folders (e.g., YYYY-MM-DD).
+
+- File Search & Matching — robust pattern matching to locate NIfTI, bvec/bval, and transform files even when filenames differ slightly.
+
+- NIfTI Handling — inspects image dimensions and trims odd dimensions to ensure compatibility with FSL/ANTs.
+
+- QC Image Generation — creates slice-wise PNG snapshots for quick quality checks.
+
+- Logging Utilities — initializes console and file logging with safe fallbacks if write access is restricted.
+
+These utilities are imported by other scripts (e.g., b0_correction.py, process_eddy.py, brain_extraction.py) to ensure consistency and avoid code duplication.
+
 ---
 
 ### Authors:
