@@ -1,3 +1,36 @@
+"""
+DTI Eddy Current and Motion Correction Script
+=============================================
+
+Corrects distortions caused by eddy currents and subject motion 
+using FSL EDDY (Andersson & Sotiropoulos, 2016). 
+This implementation supports slice-to-volume correction and outlier 
+replacement, and generates QC images to evaluate correction quality.
+
+Steps performed:
+1. Load and merge diffusion-weighted images (AP/PA or reversed polarity)
+2. Prepare acquisition parameters and B0 indices
+3. Create mask for eddy correction
+4. Run FSL EDDY with slice-to-volume correction (optional)
+5. Generate QC images comparing original vs corrected volumes
+
+Reference:
+Andersson, J.L.R., & Sotiropoulos, S.N. (2016). 
+An integrated approach to correction for off-resonance effects 
+and subject movement in diffusion MR imaging. 
+NeuroImage, 125, 1063–1078. 
+https://pubmed.ncbi.nlm.nih.gov/26481672/
+
+Authors:
+- Mohammad H Abbasi (mabbasi [at] stanford.edu)
+- Gustavo Chau (gchau [at] stanford.edu)
+
+Stanford University
+Created: 2025
+Version: 1.0.0
+"""
+
+
 import json
 import os
 import numpy as np
