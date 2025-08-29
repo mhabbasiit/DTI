@@ -101,13 +101,29 @@ Steps performed:
 ---
 
 ### 6. Diffusion Tensor Model Fitting — `run_dtifit_dipy.py`
-Fit a diffusion tensor model using DIPY (Garyfallidis et al., 2014).  
-Outputs include FA, MD, RD, and AD maps.  
+Fits a diffusion tensor model using DIPY (Garyfallidis et al., 2014).
+This script takes preprocessed diffusion MRI data (DWI, bvec, bval, mask)
+and outputs standard DTI-derived measures including fractional anisotropy (FA),
+mean diffusivity (MD), radial diffusivity (RD), and axial diffusivity (AD).
+Eigenvectors of the tensor are also saved for visualization.
+Steps performed:
+1. Load diffusion MRI data, b-values, b-vectors, and brain mask
+2. Construct gradient table using DIPY
+3. Fit the diffusion tensor model voxel-wise
+4. Extract tensor components (Dxx, Dxy, Dxz, Dyy, Dyz, Dzz)
+5. Save DTI-derived tensor components and maps: FA, MD, RD, AD, and eigenvectors (V1, V2, V3)
+6. Generate QC images showing a color FA map
 
-**References:**  
-- Basser, P.J., et al. (1994). *Biophysical Journal, 66(1), 259–267.*  
-- Alexander, A.L., et al. (2007). *Neurotherapeutics, 4(3), 316–329.*  
-- Garyfallidis, E., et al. (2014). *Frontiers in Neuroinformatics, 8, 8.*  
+**Reference:** 
+- Basser, P.J., Mattiello, J., & LeBihan, D. (1994). MR diffusion tensor spectroscopy 
+  and imaging. Biophysical Journal, 66(1), 259–267.
+
+  - https://pubmed.ncbi.nlm.nih.gov/8130344/
+  
+- Garyfallidis, E., Brett, M., Correia, M.M., Williams, G.B., & Nimmo-Smith, I. (2014). 
+  DIPY, a library for the analysis of diffusion MRI data. Frontiers in Neuroinformatics, 8, 8. 
+  
+  - https://pmc.ncbi.nlm.nih.gov/articles/PMC3931231/
 
 ---
 
