@@ -5,19 +5,23 @@
 DTI Preprocessing Quality Control (QC) Script
 ==============================================
 
-This script provides comprehensive quality control for DTI preprocessing pipeline.
-It generates QC images and reports for each step of the DTI processing:
+This script provides comprehensive quality control for the 
+DTI preprocessing pipeline. It generates QC images and reports 
+for each step of the DTI processing:
 
 1. Topup correction (B0 field correction)
-2. Skull stripping  
+2. Skull stripping
 3. Eddy correction
-4. Registration within session (if partitioned scans)
-5. Registration to MNI
-6. DTI fit
+4. Registration within session (if multiple scans per session)
+5. Registration to MNI space
+6. DTI tensor fitting
 
-Authors: Mohammad H Abbasi (mabbasi[at]stanford.edu), Gustavo Chau (gchau[at]stanford.edu)
-Stanford University,
-Created: 2025,
+Authors:
+- Mohammad H Abbasi (mabbasi [at] stanford.edu)
+- Gustavo Chau (gchau [at] stanford.edu)
+
+Stanford University
+Created: 2025
 Version: 1.0.0
 """
 
