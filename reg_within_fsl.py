@@ -14,12 +14,6 @@ Steps performed:
 4. Merge registered DWI volumes, b-vectors, and b-values
 5. Save combined outputs for downstream processing
 
-Reference:
-Jenkinson, M., Bannister, P., Brady, M., & Smith, S. (2002). 
-Improved optimization for the robust and accurate linear registration 
-and motion correction of brain images. NeuroImage, 17(2), 825–841. 
-doi:10.1006/nimg.2002.1132
-
 Authors:
 - Mohammad H Abbasi (mabbasi [at] stanford.edu)
 - Gustavo Chau (gchau [at] stanford.edu)
