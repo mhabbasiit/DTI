@@ -18,7 +18,7 @@ Authors:
 - Mohammad H Abbasi (mabbasi [at] stanford.edu)
 - Gustavo Chau (gchau [at] stanford.edu)
 
-Stanford University https://stai.stanford.edu/
+Stanford University
 Created: 2025
 Version: 1.0.0
 """
