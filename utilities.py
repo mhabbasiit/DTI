@@ -1,3 +1,39 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Utility Functions for dMRI Preprocessing Pipeline
+=================================================
+
+This module provides helper functions for diffusion MRI preprocessing,
+including:
+
+1. File handling utilities:
+   - Detect session folders (YYYY-MM-DD)
+   - Match files with flexible patterns
+   - Find files robustly in complex dataset structures
+
+2. Image handling utilities:
+   - Load NIfTI volumes and check dimensions
+   - Trim odd voxel dimensions to ensure compatibility
+   - Generate QC images for selected slices/volumes
+
+3. Logging utilities:
+   - Initialize logging with console + file output
+   - Safe fallback to console-only logging if no write access
+
+These utilities are used by other scripts in the pipeline (e.g.,
+b0_correction.py, process_eddy.py, brain_extraction.py, registration, and dtifit).
+
+Authors:
+- Mohammad H Abbasi (mabbasi [at] stanford.edu)
+- Gustavo Chau (gchau [at] stanford.edu)
+
+Stanford University
+Created: 2025
+Version: 1.0.0
+"""
+
 import os
 import glob
 import numpy as np
