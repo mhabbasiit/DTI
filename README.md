@@ -19,8 +19,6 @@ Paths and file naming are controlled by `config.py`.
 See `config_hcpag.py` for an example configuration for the HCP-Aging dataset.  
 
 All scripts work on a **subject-by-subject** basis.  
-An example of parallelization in a SLURM environment is provided in `run_topup.slurm`.  
-
 ---
 
 ## Processing Steps
