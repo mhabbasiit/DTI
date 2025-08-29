@@ -128,11 +128,38 @@ Steps performed:
 ---
 
 ### 7. Quality Control of Final Outputs — `run_final_qc.py`
-Perform automated QC checks, including:  
-- File existence validation  
-- Dice coefficient calculation for registration accuracy (Zou et al., 2004)  
+Quality Control of Final Outputs — run_final_qc.py
+==================================================
 
-**Reference:** Zou, K.H., et al. (2004). *Academic Radiology, 11(2), 178–189.*  
+Performs automated, session-aware QC checks on diffusion pipeline outputs.
+This script validates file existence and assesses registration quality using
+overlap metrics (Dice) between warped images and the MNI template. Results are
+written to per-session CSV reports for downstream review.
+
+What it checks:
+1) File existence validation (key outputs, matrices, QC images)
+2) Registration to MNI (rigid + affine) — Dice coefficient vs. MNI template
+3) Within-session registration (if NUM_SCANS_PER_SESSION > 1) — Dice on b0-to-b0
+4) Session discovery and per-session reporting
+5) Structured logging to file + console
+
+Outputs (CSV per subject/session):
+- QC/file_existance.csv
+- QC/within_subject_registraction_qc.csv              (only if NUM_SCANS_PER_SESSION > 1)
+- QC/mni_registraction_qc.csv
+
+Notes:
+- Uses thresholds for PASS/WARNING based on Dice (configurable in code).
+- Relies on TEMPLATE_PATH and derivative folders from config.py.
+- Designed to run after registration steps have completed.
+
+Reference:
+Zou, K.H., Warfield, S.K., Bharatha, A., Tempany, C.M., Kaus, M.R., Haker, S.J., 
+Wells, W.M., Jolesz, F.A., & Kikinis, R. (2004).
+Statistical validation of image segmentation quality based on a spatial overlap index.
+Academic Radiology, 11(2), 178–189.
+
+- https://pubmed.ncbi.nlm.nih.gov/14974593/
 
 ---
 
