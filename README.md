@@ -257,34 +257,26 @@ Create a text file named **`subject_list.txt`** with one subject ID per line, e.
   
 ### 3) Run preprocessing
 
-**Option A — SLURM job array**
-### Submit array jobs (replace N with the number of subjects in your list)
+Submit array jobs (replace N with the number of subjects in your list)
+
+```bash
 sbatch --array=1-N run_b0_correction.sh
+```
 
 ### Pipeline order
 - Pipeline order (per subject)
-
 - python b0_correction.py <subject_id>
-
 - python process_eddy.py <subject_id>
-
 - python brain_extraction.py <subject_id>
-
 - python reg_within_fsl.py <subject_id>
-
 - python run_reg_mni.py <subject_id>
-
 - python run_dtifit_dipy.py <subject_id>
-
 - python run_final_qc.py <subject_id>
-
 - python dti_qc.py <subject_id>
 
 ### Check outputs
 Check outputs
 
 - Preprocessed data → <OUTPUT_DIR> (set in config.py)
-
 - QC results → <OUTPUT_DIR>/QC/
-
 - Open <OUTPUT_DIR>/QC/DTI_QC_Summary.html for an overview across all subjects
