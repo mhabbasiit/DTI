@@ -15,8 +15,10 @@ It generates QC images and reports for each step of the DTI processing:
 5. Registration to MNI
 6. DTI fit
 
-Author: Mohammad Abbasi (mabbasi@stanford.edu)
-Created: 2025
+Authors: Mohammad H Abbasi (mabbasi[at]stanford.edu), Gustavo Chau (gchau[at]stanford.edu)
+Stanford University,
+Created: 2025,
+Version: 1.0.0
 """
 
 import os
