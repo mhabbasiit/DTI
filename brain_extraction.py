@@ -1,3 +1,33 @@
+"""
+Brain Extraction Script
+=======================
+
+Removes non-brain tissue from diffusion MRI data using FSL BET 
+(Smith, 2002). This step performs skull stripping and generates 
+quality control (QC) images and summary files to validate 
+the extracted brain.
+
+Steps performed:
+1. Apply FSL BET to remove non-brain tissue
+2. Generate brain mask and masked output
+3. Compute brain volume (ml) and validate against the expected range
+4. Create QC images (raw, brain-extracted, raw+mask, differences)
+5. Write QC summary (CSV) for downstream review
+
+Reference:
+Smith, S.M. (2002). Fast robust automated brain extraction. 
+Human Brain Mapping, 17(3), 143–155. 
+https://pubmed.ncbi.nlm.nih.gov/12391568/
+
+Authors:
+- Mohammad H Abbasi (mabbasi [at] stanford.edu)
+- Gustavo Chau (gchau [at] stanford.edu)
+
+Stanford University
+Created: 2025
+Version: 1.0.0
+"""
+
 import json
 import os
 import numpy as np
