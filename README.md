@@ -39,7 +39,17 @@ This step estimates a field map from images with opposite phase-encoding directi
 Correct distortions caused by eddy currents and subject motion using FSL EDDY (Andersson & Sotiropoulos, 2016).  
 Includes slice-to-volume correction and outlier replacement.  
 
+Steps performed:
+1. Load and merge diffusion-weighted images (AP/PA or reversed polarity)
+2. Prepare acquisition parameters and B0 indices
+3. Create mask for eddy correction
+4. Run FSL EDDY with slice-to-volume correction (optional)
+5. Generate QC images comparing original vs corrected volumes
+
+Reference:
 **Reference:** Andersson, J.L.R., & Sotiropoulos, S.N. (2016). *NeuroImage, 125, 1063–1078.*
+
+- https://pubmed.ncbi.nlm.nih.gov/26481672/
 
 ---
 
