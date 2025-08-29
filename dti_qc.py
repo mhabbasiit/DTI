@@ -8,7 +8,7 @@ DTI Preprocessing Quality Control (QC) Script
 This script provides comprehensive quality control for DTI preprocessing pipeline.
 It generates QC images and reports for each step of the DTI processing:
 
-1. Top up correction (B0 field correction)
+1. Topup correction (B0 field correction)
 2. Skull stripping  
 3. Eddy correction
 4. Registration within session (if partitioned scans)
