@@ -84,8 +84,19 @@ Steps performed:
 ---
 
 ### 5. Registration to MNI Space — `run_reg_mni.py`
-Register diffusion-derived maps to the MNI152 template using a two-step approach (rigid + affine) with FSL FLIRT.  
-Corresponding b-vectors are transformed as well.  
+Registers diffusion images to the MNI152 template using a
+two-step approach with FSL FLIRT (rigid + affine). Corresponding
+b-vectors are rotated to preserve orientation
+consistency. The pipeline also applies the transforms to the diffusion
+volumes and masks, and prepares final outputs for downstream analysis.
+
+Steps performed:
+1. Register B0 to MNI (rigid, 6 DOF), save the matrix and registered B0
+3. Refine B0→MNI with affine (12 DOF), save matrix, and registered B0
+4. Apply rigid and then affine transforms to DWI
+5. Rotate b-vectors using the previously computed transformations
+6. Copy b-values (bval_final.bval) for consistency
+7. Register mask with nearest-neighbour interpolation using the previously computed transformations 
 
 ---
 
