@@ -7,6 +7,7 @@ two-step approach with FSL FLIRT (rigid + affine). Corresponding
 b-vectors are rotated to preserve orientation
 consistency. The pipeline also applies the transforms to the diffusion
 volumes and masks, and prepares final outputs for downstream analysis.
+
 Steps performed:
 1. Register B0 to MNI (rigid, 6 DOF), save matrix and registered B0
 3. Refine B0→MNI with affine (12 DOF), save matrix and registered B0
@@ -14,7 +15,6 @@ Steps performed:
 5. Rotate b-vectors using the previously computed transformations
 6. Copy b-values (bval_final.bval) for consistency
 7. Register mask with nearest-neighbour interpolation using the previously computed transformations
-
 
 Authors:
 - Mohammad H Abbasi (mabbasi [at] stanford.edu)
