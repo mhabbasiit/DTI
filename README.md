@@ -69,8 +69,17 @@ Steps performed:
 ---
 
 ### 4. Merging of Acquisitions — `reg_within_fsl.py`
-Align and merge multiple runs using FSL FLIRT.  
-Transformations are also applied to b-vectors.  
+
+Aligns and merges multiple diffusion MRI runs using FSL FLIRT in case a session is broken down into multiple acquisitions.
+Rigid transformations are estimated between B0 reference images,
+applied to corresponding diffusion volumes, and propagated to
+b-vectors to ensure orientation consistency across runs.
+Steps performed:
+1. Register B0 images between runs using FLIRT rigid-body transform
+2. Apply transforms to diffusion volumes (DWI)
+3. Rotate b-vectors using the computed transformation matrix
+4. Merge registered DWI volumes, b-vectors, and b-values
+5. Save combined outputs for downstream processing
 
 ---
 
