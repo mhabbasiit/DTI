@@ -16,7 +16,6 @@ At present, the only distortion correction supported is **top-up correction**, w
 ## Configuration
 
 Paths and file naming are controlled by `config.py`.  
-See `config_hcpag.py` for an example configuration for the HCP-Aging dataset.  
 
 All scripts work on a **subject-by-subject** basis.  
 
