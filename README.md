@@ -19,6 +19,15 @@ Paths and file naming are controlled by `config.py`.
 
 All scripts work on a **subject-by-subject** basis.  
 
+Configuration file for neuroimaging pipeline
+
+Contains settings for:
+1. Common configurations (paths, logging, etc.)
+2. Topup and Eddy correction
+3. Skull stripping
+4. DTI fit
+5. Registration
+
 ---
 
 ## Processing Steps
