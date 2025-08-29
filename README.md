@@ -237,3 +237,34 @@ Stanford University, STAI Lab (https://stai.stanford.edu)
 Created: 2025
 
 Version: 1.0.0
+
+
+---
+# Edit configuration
+# Update paths and file patterns in config.py to point to your dataset.
+# Set NUM_SCANS_PER_SESSION according to your acquisitions.
+
+# Prepare subject list
+# Create a text file with one subject ID per line (e.g., subject_list.txt).
+
+# Run preprocessing
+# Submit jobs via SLURM (example):
+sbatch --array=1-N run_b0_correction.sh
+# Replace N with the number of subjects in your list.
+
+# Pipeline order
+# Run scripts in sequence for each subject:
+python b0_correction.py <subject_id>
+python process_eddy.py <subject_id>
+python brain_extraction.py <subject_id>
+python reg_within_fsl.py <subject_id>
+python run_reg_mni.py <subject_id>
+python run_dtifit_dipy.py <subject_id>
+python run_final_qc.py <subject_id>
+python dti_qc.py <subject_id>
+
+# Check outputs
+# Preprocessed data are written under <OUTPUT_DIR> (see config.py).
+# QC results are saved in <OUTPUT_DIR>/QC/.
+# Open <OUTPUT_DIR>/QC/DTI_QC_Summary.html for an overview across all subjects.
+
