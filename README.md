@@ -150,11 +150,9 @@ Notes:
 - Relies on TEMPLATE_PATH and derivative folders from config.py.
 - Designed to run after registration steps have completed.
 
-Reference:
+**Reference:** 
 Zou, K.H., Warfield, S.K., Bharatha, A., Tempany, C.M., Kaus, M.R., Haker, S.J., 
-Wells, W.M., Jolesz, F.A., & Kikinis, R. (2004).
-Statistical validation of image segmentation quality based on a spatial overlap index.
-Academic Radiology, 11(2), 178–189.
+Wells, W.M., Jolesz, F.A., & Kikinis, R. (2004), 11(2), 178–189.
 
 - https://pubmed.ncbi.nlm.nih.gov/14974593/
 
