@@ -1,3 +1,30 @@
+"""
+Registration to MNI Space — run_reg_mni.py
+==========================================
+
+Registers diffusion images to the MNI152 template using a
+two-step approach with FSL FLIRT (rigid + affine). Corresponding
+b-vectors are rotated to preserve orientation
+consistency. The pipeline also applies the transforms to the diffusion
+volumes and masks, and prepares final outputs for downstream analysis.
+Steps performed:
+1. Register B0 to MNI (rigid, 6 DOF), save matrix and registered B0
+3. Refine B0→MNI with affine (12 DOF), save matrix and registered B0
+4. Apply rigid and then affine transforms to DWI
+5. Rotate b-vectors using the previously computed transformations
+6. Copy b-values (bval_final.bval) for consistency
+7. Register mask with nearest-neighbour interpolation using the previously computed transformations
+
+
+Authors:
+- Mohammad H Abbasi (mabbasi [at] stanford.edu)
+- Gustavo Chau (gchau [at] stanford.edu)
+
+Stanford University
+Created: 2025
+Version: 1.0.0
+"""
+
 import os
 import glob
 import nibabel as nib
@@ -163,7 +190,7 @@ def rotate_bvecs(bvecs_path, output_bvecs_path, flirt_mat_path):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python brain_extraction.py <subject_id>")
+        print("Usage: python run_reg_mni.py <subject_id>")
         sys.exit(1)
     else:
         subject_id = sys.argv[1]
