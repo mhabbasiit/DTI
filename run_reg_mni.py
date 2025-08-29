@@ -10,11 +10,11 @@ volumes and masks, and prepares final outputs for downstream analysis.
 
 Steps performed:
 1. Register B0 to MNI (rigid, 6 DOF), save matrix and registered B0
-3. Refine B0→MNI with affine (12 DOF), save matrix and registered B0
-4. Apply rigid and then affine transforms to DWI
-5. Rotate b-vectors using the previously computed transformations
-6. Copy b-values (bval_final.bval) for consistency
-7. Register mask with nearest-neighbour interpolation using the previously computed transformations
+2. Refine B0→MNI with affine (12 DOF), save matrix and registered B0
+3. Apply rigid and then affine transforms to DWI
+4. Rotate b-vectors using the previously computed transformations
+5. Copy b-values (bval_final.bval) for consistency
+6. Register mask with nearest-neighbour interpolation using the previously computed transformations
 
 Authors:
 - Mohammad H Abbasi (mabbasi [at] stanford.edu)
