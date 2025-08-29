@@ -19,12 +19,18 @@ Steps performed:
 References:
 - Basser, P.J., Mattiello, J., & LeBihan, D. (1994). MR diffusion tensor spectroscopy 
   and imaging. Biophysical Journal, 66(1), 259–267. doi:10.1016/S0006-3495(94)80775-1
+
+  - https://pubmed.ncbi.nlm.nih.gov/8130344/
+  
 - Alexander, A.L., Lee, J.E., Lazar, M., & Field, A.S. (2007). Diffusion tensor imaging 
   of the brain. Neurotherapeutics, 4(3), 316–329. doi:10.1016/j.nurt.2007.05.011
+
+  - https://pubmed.ncbi.nlm.nih.gov/17599699/
+  
 - Garyfallidis, E., Brett, M., Correia, M.M., Williams, G.B., & Nimmo-Smith, I. (2014). 
   DIPY, a library for the analysis of diffusion MRI data. Frontiers in Neuroinformatics, 8, 8. 
-  doi:10.3389/fninf.2014.00008
-
+  - https://pmc.ncbi.nlm.nih.gov/articles/PMC3931231/
+  
 Authors:
 - Mohammad H Abbasi (mabbasi [at] stanford.edu)
 - Gustavo Chau (gchau [at] stanford.edu)
