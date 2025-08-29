@@ -10,7 +10,13 @@ Contains settings for:
 4. DTI fit
 5. Registration
 
-Author: Gustavo Chau (gchau@stanford.edu)
+Authors:
+- Mohammad H Abbasi (mabbasi [at] stanford.edu)
+- Gustavo Chau (gchau [at] stanford.edu)
+
+Stanford University
+Created: 2025
+Version: 1.0.0
 """
 
 import os
@@ -20,7 +26,7 @@ import subprocess
 ###############################################################################
 #                         FSL Settings                                #
 ###############################################################################
-FSL_HOME = "/simurgh/u/gustavochau/fsl"
+FSL_HOME = "/path/u/user/fsl"
 FSL_BIN = os.path.join(FSL_HOME,'share/fsl/bin')
 # FreeSurfer environment variables
 FSL_ENV = {
@@ -45,16 +51,16 @@ def setup_fsl_env():
 # Common/Shared Settings
 # ------------------------------
 # Input/Output directories
-INPUT_DIR = "/simurgh/group/gustavochau/ADNI4"
+INPUT_DIR = "/input/path"
 INPUT_SUBDIR = ""
-OUTPUT_DIR = "/simurgh/group/gustavochau/ADNI4-processed"
+OUTPUT_DIR = "/output/path"
 TEMP_DIR = "tmp"
 QC_DIR = os.path.join(OUTPUT_DIR, "QC")
 NUM_SCANS_PER_SESSION = 1
 
 # Logging settings
 ENABLE_DETAILED_LOGGING = True
-LOG_DIR = "/simurgh/group/gustavochau/ADNI4-processed/logs"
+LOG_DIR = "/logs/path"
 
 LOG_LEVEL = "DEBUG"             # DEBUG, INFO, WARNING, ERROR, CRITICAL
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s' if ENABLE_DETAILED_LOGGING else '%(message)s'
@@ -127,7 +133,7 @@ EDDY_CORRECTION_QC_SLICES = [17,40]
 #                         Registration to MNI                                 #
 ###############################################################################
 
-TEMPLATE_PATH = "/simurgh/u/gustavochau/tpl-MNI152NLin2009cAsym_res-01_desc-brain_T1w.nii.gz"
+TEMPLATE_PATH = "/path/u/user/tpl-MNI152NLin2009cAsym_res-01_desc-brain_T1w.nii.gz"
 REG_MNI_MASK_INPUT_FOLDER = SKULL_STRIP_OUTPUT_FOLDER
 REG_MNI_MASK_NAMES = 'mask_bet_scan0_mask.nii.gz'
 REG_MNI_B0_INPUT_FOLDER = SKULL_STRIP_OUTPUT_FOLDER
