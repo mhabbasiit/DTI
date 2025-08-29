@@ -128,9 +128,6 @@ Steps performed:
 ---
 
 ### 7. Quality Control of Final Outputs — `run_final_qc.py`
-Quality Control of Final Outputs — run_final_qc.py
-==================================================
-
 Performs automated, session-aware QC checks on diffusion pipeline outputs.
 This script validates file existence and assesses registration quality using
 overlap metrics (Dice) between warped images and the MNI template. Results are
