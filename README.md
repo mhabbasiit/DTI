@@ -210,8 +210,8 @@ Gustavo Chau (gchau [at] stanford.edu)
 ---
 
 
-**Stanford University, STAI Lab (https://stai.stanford.edu)
+Stanford University, STAI Lab (https://stai.stanford.edu)
 
 Created: 2025
 
-Version: 1.0.0**
+Version: 1.0.0
