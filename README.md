@@ -202,8 +202,7 @@ Dice for overlap validation: Zou, K.H., et al. (2004). Academic Radiology, 11(2)
 
 ---
 
-### 
-Authors:
+### Authors:
 - Mohammad H Abbasi (mabbasi [at] stanford.edu)
 - Gustavo Chau (gchau [at] stanford.edu)
 
