@@ -2,19 +2,47 @@
 # -*- coding: utf-8 -*-
 
 """
-DTI Preprocessing Quality Control (QC) Script
-==============================================
+Generation of HTML QC Reports — dti_qc.py
+=========================================
 
-This script provides comprehensive quality control for the 
-DTI preprocessing pipeline. It generates QC images and reports 
-for each step of the DTI processing:
+Generates automated, subject-level QC reports that summarize and visualize the
+outputs of the DTI preprocessing pipeline. This script *reads existing* QC CSVs
+and QC images from each step and compiles them into a clickable HTML report 
+along with CSV/JSON summaries. If FA/MD maps are available, it also computes 
+basic statistics.
 
-1. Topup correction (B0 field correction)
-2. Skull stripping
-3. Eddy correction
-4. Registration within session (if multiple scans per session)
-5. Registration to MNI space
-6. DTI tensor fitting
+Summarized in the report:
+- Raw vs. corrected B0 (Topup) — QC images (before/after)
+- Eddy-corrected vs. uncorrected volumes — QC images
+- Brain extraction evaluation — mask overlays + brain volume (mL)
+- FA and color-FA maps — quick-look thumbnails and stats
+- Registration metrics — Dice coefficients for within-session & MNI steps
+
+Inputs (read-only):
+- Existing QC CSVs (e.g., `file_existance.csv`,
+  `within_subject_registraction_qc.csv`, `mni_registraction_qc.csv`)
+- QC images from each step (Topup, Skull stripping, Eddy, DTI fit)
+- Optional DTI maps: `dipy_fa.nii.gz`, `dipy_md.nii.gz`
+- Paths and flags from `config.py` (e.g., `OUTPUT_DIR`, `NUM_SCANS_PER_SESSION`)
+
+Outputs:
+- Per-subject JSON:  `<QC>/<subject_id>/<subject_id>_qc_results.json`
+- Per-subject CSV:   `<QC>/<subject_id>/<subject_id>_qc_summary.csv`
+- Per-subject HTML:  `<QC>/<subject_id>/<subject_id>_report.html`
+- Aggregated CSV:    `<QC>/all_subjects_summary.csv`
+- Aggregated HTML:   `<QC>/DTI_QC_Summary.html`
+
+Behavior & notes:
+- Session-aware: if session directories exist (e.g., YYYY-MM-DD), they are 
+  automatically detected and linked.
+- Read-only summarization; heavy QC computations (e.g., Dice) are performed 
+  in earlier scripts.
+- If `nilearn` is not available, visualization sections are safely skipped.
+- Uses the non-interactive Matplotlib backend (`Agg`) to run in headless 
+  environments.
+
+References:
+- Dice for overlap validation: Zou, K.H., et al. (2004). Academic Radiology, 11(2), 178–189.
 
 Authors:
 - Mohammad H Abbasi (mabbasi [at] stanford.edu)
@@ -23,7 +51,11 @@ Authors:
 Stanford University
 Created: 2025
 Version: 1.0.0
+
+Usage:
+    python dti_qc.py <subject_id> --output-dir /path/to/derivatives [--verbose]
 """
+
 
 import os
 import sys
