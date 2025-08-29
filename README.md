@@ -46,7 +46,6 @@ Steps performed:
 4. Run FSL EDDY with slice-to-volume correction (optional)
 5. Generate QC images comparing original vs corrected volumes
 
-Reference:
 **Reference:** Andersson, J.L.R., & Sotiropoulos, S.N. (2016). *NeuroImage, 125, 1063–1078.*
 
 - https://pubmed.ncbi.nlm.nih.gov/26481672/
