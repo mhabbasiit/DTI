@@ -206,12 +206,12 @@ Dice for overlap validation: Zou, K.H., et al. (2004). Academic Radiology, 11(2)
 Mohammad H Abbasi (mabbasi [at] stanford.edu)
 
 Gustavo Chau (gchau [at] stanford.edu)
+
 ---
 
-###:
 
-Stanford University, STAI Lab (https://stai.stanford.edu)
+**Stanford University, STAI Lab (https://stai.stanford.edu)
 
 Created: 2025
 
-Version: 1.0.0
+Version: 1.0.0**
