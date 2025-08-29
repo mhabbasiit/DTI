@@ -1,3 +1,25 @@
+"""
+Wrapper for B0 field correction (it is called b0_correction.py)
+Corrects susceptibility-induced distortions using FSL TOPUP 
+(Andersson et al., 2003). This step estimates a field map from 
+images with opposite phase-encoding directions and applies it 
+to unwarp distorted diffusion volumes.
+
+Reference:
+Andersson, J.L.R., Skare, S., & Ashburner, J. (2003). 
+How to correct susceptibility distortions in spin-echo echo-planar images: 
+application to diffusion tensor imaging. NeuroImage, 20(2), 870–888. 
+https://pubmed.ncbi.nlm.nih.gov/14568458/
+
+Authors:
+- Mohammad H Abbasi (mabbasi [at] stanford.edu)
+- Gustavo Chau (gchau [at] stanford.edu)
+
+Stanford University
+Created: 2025
+Version: 1.0.0
+"""
+
 import json
 import os
 import numpy as np
