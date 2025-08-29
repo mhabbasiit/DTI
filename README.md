@@ -260,7 +260,7 @@ Create a text file named **`subject_list.txt`** with one subject ID per line, e.
 **Option A — SLURM job array**
 ```bash
 # Submit array jobs (replace N with the number of subjects in your list)
-sbatch --array=1-N run_b0_correction.sh
+sbatch --array=1-N run_b0_correction.sh ```
 
 ### Pipeline order
 Pipeline order (per subject)
