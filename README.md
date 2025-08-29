@@ -98,6 +98,7 @@ Steps performed:
 6. Copy b-values (bval_final.bval) for consistency
 7. Register mask with nearest-neighbour interpolation using the previously computed transformations 
 
+
 ---
 
 ### 6. Diffusion Tensor Model Fitting — `run_dtifit_dipy.py`
