@@ -30,7 +30,8 @@ Correct susceptibility-induced distortions using FSL TOPUP (Andersson et al., 20
 This step estimates a field map from images with opposite phase-encoding directions and applies it to unwarp distorted diffusion volumes.  
 
 **Reference:** Andersson, J.L.R., Skare, S., & Ashburner, J. (2003). *NeuroImage, 20(2), 870–888.*
-https://pubmed.ncbi.nlm.nih.gov/14568458/
+
+- https://pubmed.ncbi.nlm.nih.gov/14568458/
 
 ---
 
