@@ -7,9 +7,10 @@ This script takes preprocessed diffusion MRI data (DWI, bvec, bval, mask)
 and outputs standard DTI-derived measures including fractional anisotropy (FA),
 mean diffusivity (MD), radial diffusivity (RD), and axial diffusivity (AD).
 Eigenvectors of the tensor are also saved for visualization.
+
 Steps performed:
 1. Load diffusion MRI data, b-values, b-vectors, and brain mask
-2. Construct gradient table using DIPY
+2. Construct a gradient table using DIPY
 3. Fit the diffusion tensor model voxel-wise
 4. Extract tensor components (Dxx, Dxy, Dxz, Dyy, Dyz, Dzz)
 5. Save DTI-derived tensor components and maps: FA, MD, RD, AD, and eigenvectors (V1, V2, V3)
