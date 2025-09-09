@@ -388,6 +388,12 @@ def check_file_existence(subject_dirs, derivatives_dir):
                 t1_qc_files = glob.glob(os.path.join(skullstrip_t1_dir, "*desc-qc.png"))
                 t1_qc_files += glob.glob(os.path.join(skullstrip_t1_dir, "*brain*desc-qc.png"))
             
+            # Also search in the main subject directory for DTI/B0 skull QC files
+            main_subject_skull_dir = os.path.join(skullstrip_dir, sid)
+            if os.path.exists(main_subject_skull_dir):
+                t1_qc_files += glob.glob(os.path.join(main_subject_skull_dir, "*desc-qc.png"))
+                t1_qc_files += glob.glob(os.path.join(main_subject_skull_dir, "mask_bet*desc-qc.png"))
+            
             logging.info(t1_qc_files)
             skull_t1_qc = t1_qc_files[0] if t1_qc_files else None
             
@@ -790,4 +796,3 @@ if __name__ == "__main__":
         ]
         df_mni = analyze_registration_matrices(subject_path, REG_MNI_OUTPUT_FOLDER, 'Diffusion',TEMPLATE_PATH,patterns_mni)
         df_mni.to_csv(csv_out, index=False)
-
