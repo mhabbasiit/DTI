@@ -67,18 +67,10 @@ import nibabel as nib
 import pandas as pd
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
-import matplotlib.pyplot as plt
-import seaborn as sns
 from datetime import datetime
 import logging
 from pathlib import Path
 from urllib.parse import quote
-
-# Import configuration
-try:
-    from config import NUM_SCANS_PER_SESSION
-except ImportError:
-    NUM_SCANS_PER_SESSION = 1  # Default fallback
 import shutil
 from collections import defaultdict
 
@@ -90,8 +82,20 @@ except ImportError:
     print("Warning: nilearn not available. Some visualizations will be skipped.")
     NILEARN_AVAILABLE = False
 
-# Import configuration
-from config import *
+# Import specific configuration items (avoid import *)
+try:
+    from config import (
+        OUTPUT_DIR, NUM_SCANS_PER_SESSION, DATASET_NAME,
+        QC_DIR, LOG_DIR, ENABLE_DETAILED_LOGGING
+    )
+except ImportError:
+    # Fallback defaults
+    OUTPUT_DIR = "."
+    NUM_SCANS_PER_SESSION = 1
+    DATASET_NAME = "DTI Dataset"
+    QC_DIR = "./QC"
+    LOG_DIR = "./logs"
+    ENABLE_DETAILED_LOGGING = True
 
 # ==========================================
 # Configuration and Setup
@@ -154,9 +158,13 @@ class DTIQualityControl:
         self.subject_dir = os.path.join(self.qc_base_dir, subject_id)
         self.qc_dir = self.subject_dir  # Everything in subject folder
         
+        # Documentation directory
+        self.docs_dir = os.path.join(self.qc_base_dir, "documentation")
+        
         # Create directories automatically
         try:
             os.makedirs(self.subject_dir, exist_ok=True)
+            os.makedirs(self.docs_dir, exist_ok=True)
             logging.info(f"Created subject directory: {self.subject_dir}")
         except Exception as e:
             logging.warning(f"Could not create directory {self.subject_dir}: {e}")
@@ -266,12 +274,18 @@ class DTIQualityControl:
                 df = pd.read_csv(file_exist_csv)
                 if not df.empty:
                     row = df.iloc[0]
+                    files_checked = len(df.columns) - 5  # Excluding basic columns
+                    missing_count = int(row.get('missing_count', 0))
+                    files_found = files_checked - missing_count
+                    
                     self.qc_results['file_existence_qc'] = {
                         'status': 'PASS',
                         'csv_exists': True,
-                        'files_checked': len(df.columns) - 5,  # Excluding basic columns
+                        'files_checked': files_checked,
+                        'files_found': files_found,
+                        'files_missing': missing_count,
                         'skull_ok': row.get('skull_ok', False),
-                        'missing_count': row.get('missing_count', 0)
+                        'missing_count': missing_count
                     }
                     logging.info(f"File existence: {row.get('missing_count', 0)} missing files")
             except Exception as e:
@@ -451,7 +465,10 @@ class DTIQualityControl:
                     statuses.append(status)
         
         # Overall status logic
-        if 'ERROR' in statuses or 'FAIL' in statuses:
+        if not statuses:
+            # No valid statuses found - likely missing data
+            overall_status = 'WARNING'
+        elif 'ERROR' in statuses or 'FAIL' in statuses:
             overall_status = 'FAIL'
         elif 'WARNING' in statuses:
             overall_status = 'WARNING'
@@ -552,107 +569,135 @@ class DTIQualityControl:
         
         html_content = f"""
         <!DOCTYPE html>
-        <html>
+        <html lang="en">
         <head>
-            <title>DTI QC Report - {self.subject_id}</title>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>DTI QC Report - {self.subject_id}</title>
             <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                body {{ font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }}
+                .container {{ max-width: 1200px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                h1 {{ color: #2c3e50; text-align: center; border-bottom: 3px solid #3498db; padding-bottom: 10px; }}
+                h2 {{ color: #34495e; border-left: 4px solid #3498db; padding-left: 15px; margin-top: 30px; }}
+                
+                .status-pass {{ color: #27ae60; font-weight: bold; }}
+                .status-fail {{ color: #e74c3c; font-weight: bold; }}
+                .status-warning {{ color: #f39c12; font-weight: bold; }}
+                .status-unknown {{ color: #95a5a6; font-weight: bold; }}
+                .pass {{ color: #27ae60; font-weight: bold; }}
+                .fail {{ color: #e74c3c; font-weight: bold; }}
+                .warning {{ color: #f39c12; font-weight: bold; }}
+                .error {{ color: #e74c3c; font-weight: bold; }}
+                
+                table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+                th, td {{ padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }}
+                th {{ background-color: #3498db; color: white; }}
+                tr:nth-child(even) {{ background-color: #f2f2f2; }}
+                
+                .navigation {{ text-align: center; margin: 30px 0; }}
+                .nav-button {{ background-color: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 0 10px; }}
+                .nav-button:hover {{ background-color: #2980b9; }}
+                a {{ color: #3498db; text-decoration: none; }}
+                a:hover {{ text-decoration: underline; }}
 
-                h1 {{ color: #2c3e50; }}
-                h2 {{ color: #2c3e50; }}
-                
-                .pass {{ color: green; font-weight: bold; }}
-                .warning {{ color: orange; font-weight: bold; }}
-                .fail {{ color: red; font-weight: bold; }}
-                .error {{ color: red; font-weight: bold; }}
-                
-                .stats {{ background: #f9f9f9; padding: 15px; margin: 20px 0; }}
-                .section {{ margin: 20px 0; }}
-                
-                table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
-                th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-                th {{ background-color: #f2f2f2; }}
-                
-                .images-grid {{
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                    gap: 20px;
-                    margin: 20px 0;
-                }}
-                .image-card {{
-                    border: 1px solid #dee2e6;
-                    border-radius: 8px;
-                    overflow: hidden;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                    background: white;
-                }}
-                .image-card img {{ 
+                /* Modal Styles */
+                .modal {{ 
+                    display: none; 
+                    position: fixed; 
+                    z-index: 1000; 
+                    left: 0; 
+                    top: 0; 
                     width: 100%; 
-                    height: auto; 
+                    height: 100%; 
+                    background-color: rgba(0,0,0,0.9); 
+                    animation: fadeIn 0.3s;
+                }}
+                .modal-content {{ 
+                    margin: 5% auto; 
+                    display: block; 
+                    max-width: 95%; 
+                    max-height: 90%; 
+                    border-radius: 8px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+                }}
+                .close {{ 
+                    position: absolute; 
+                    top: 20px; 
+                    right: 40px; 
+                    color: #ffffff; 
+                    font-size: 50px; 
+                    font-weight: bold; 
+                    cursor: pointer;
+                    background: rgba(0,0,0,0.5);
+                    border-radius: 50%;
+                    width: 60px;
+                    height: 60px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.3s ease;
+                }}
+                .close:hover, .close:focus {{ 
+                    color: #ff4444; 
+                    background: rgba(0,0,0,0.8);
+                    transform: scale(1.1);
+                }}
+                
+                @keyframes fadeIn {{
+                    from {{ opacity: 0; }}
+                    to {{ opacity: 1; }}
+                }}
+                
+                .modal-caption {{
+                    margin: auto;
                     display: block;
-                }}
-                .image-caption {{
-                    padding: 15px;
-                    background: #f8f9fa;
-                    font-weight: 600;
-                    color: #495057;
+                    width: 80%;
+                    max-width: 700px;
                     text-align: center;
-                }}
-                
-                .section {{ 
-                    margin-bottom: 40px; 
-                    padding: 20px;
-                    border: 1px solid #dee2e6;
-                    border-radius: 8px;
-                    background: white;
-                }}
-                
-                .stats-highlight {{
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                    padding: 20px;
-                    border-radius: 8px;
-                    margin: 20px 0;
-                }}
-                
-                .footer {{
-                    text-align: center;
-                    margin-top: 40px;
-                    padding-top: 20px;
-                    border-top: 2px solid #dee2e6;
-                    color: #6c757d;
+                    color: #ccc;
+                    padding: 10px 0;
+                    height: 30px;
+                    font-size: 16px;
                 }}
                 
                 .image-preview {{
                     display: inline-block;
                     margin: 5px;
-                    border: 1px solid #ddd;
-                    border-radius: 4px;
-                    transition: transform 0.2s;
+                    border: 2px solid #bdc3c7;
+                    border-radius: 8px;
+                    transition: all 0.3s ease;
+                    cursor: pointer;
                 }}
                 
                 .image-preview:hover {{
-                    transform: scale(1.05);
-                    border-color: #007bff;
+                    transform: scale(1.02);
+                    border-color: #3498db;
+                    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+                }}
+                
+                .image-preview img {{
+                    border-radius: 6px;
                 }}
             </style>
         </head>
         <body>
-            <h1>DTI Quality Control Report</h1>
-            <h2>Subject: {self.subject_id}</h2>
-            <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-            <p><a href="../../DTI_QC_Summary.html">← Back to Summary Report</a></p>
+            <div class="container">
+                <h1>DTI Quality Control Report</h1>
+                <h2 style="text-align: center; color: #34495e; border: none; padding: 0; margin: 10px 0;">{DATASET_NAME}</h2>
+                <h2>Subject: {self.subject_id}</h2>
+                <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                <div class="navigation">
+                    <a href="../DTI_QC_Summary.html" class="nav-button">← Back to Summary Report</a>
+                </div>
             
             <table>
-                <tr><th colspan="2" style="background-color: #e6f3ff; text-align: center;">Overall Summary</th></tr>
+                <tr><th colspan="2" style="background-color: #ecf0f1; color: #2c3e50; text-align: center;">Overall Summary</th></tr>
                 <tr><th>Overall Status</th><td><span class="{self.qc_results['overall_status'].lower()}">{self.qc_results['overall_status']}</span></td></tr>
-                <tr><th>Processing Steps</th><td>6</td></tr>"""
+                <tr><th>Processing Steps</th><td>7</td></tr>"""
         
         # Add summary statistics
-        passed_count = sum(1 for qc_type in ['topup_qc', 'skull_stripping_qc', 'eddy_qc', 'registration_within_qc', 'registration_mni_qc', 'dtifit_qc'] 
-                          if self.qc_results.get(qc_type, {}).get('status') == 'PASS')
+        passed_count = sum(1 for qc_type in ['topup_qc', 'skull_stripping_qc', 'eddy_qc', 'registration_within_qc', 'registration_mni_qc', 'dtifit_qc', 'file_existence_qc'] 
+                          if self.qc_results.get(qc_type, {}).get('status') in ['PASS', 'SKIP'])
         
         html_content += f"""
                 <tr><th>Passed Steps</th><td class="pass">{passed_count}</td></tr>"""
@@ -675,7 +720,7 @@ class DTIQualityControl:
         
         # Add separator row
         html_content += """
-                <tr><th colspan="2" style="background-color: #f0f8ff; text-align: center;">QC Steps Details</th></tr>"""
+                <tr><th colspan="2" style="background-color: #ecf0f1; color: #2c3e50; text-align: center;">QC Steps Details</th></tr>"""
         
         # Add File Existence QC first
         if 'file_existence_qc' in self.qc_results:
@@ -723,7 +768,7 @@ class DTIQualityControl:
                                 rel_path = f"../../B0_correction/{self.subject_id}/{topup_session}/{quote(img_name)}"
                             else:
                                 rel_path = f"../../B0_correction/{self.subject_id}/{quote(img_name)}"
-                            image_links.append(f'<a href="{rel_path}" target="_blank" class="image-preview"><img src="{rel_path}" style="max-width:300px; height:auto;" alt="{img_name}" title="Click to view full size"></a>')
+                            image_links.append(f'<div class="image-preview" onclick="openModal(\'{rel_path}\', \'{img_name}\')"><img src="{rel_path}" style="max-width:300px; height:auto;" alt="{img_name}" title="Click to view full size"></div>')
                         if image_links:
                             html_content += f"""
                             <tr><td>&nbsp;&nbsp;QC Images</td><td>{'<br>'.join(image_links)}</td></tr>"""
@@ -749,7 +794,7 @@ class DTIQualityControl:
                                 rel_path = f"../../Skull_stripping/{self.subject_id}/{skull_session}/{quote(img_name)}"
                             else:
                                 rel_path = f"../../Skull_stripping/{self.subject_id}/{quote(img_name)}"
-                            image_links.append(f'<a href="{rel_path}" target="_blank" class="image-preview"><img src="{rel_path}" style="max-width:300px; height:auto;" alt="{img_name}" title="Click to view full size"></a>')
+                            image_links.append(f'<div class="image-preview" onclick="openModal(\'{rel_path}\', \'{img_name}\')"><img src="{rel_path}" style="max-width:300px; height:auto;" alt="{img_name}" title="Click to view full size"></div>')
                         if image_links:
                             html_content += f"""
                             <tr><td>&nbsp;&nbsp;QC Images</td><td>{'<br>'.join(image_links)}</td></tr>"""
@@ -769,7 +814,7 @@ class DTIQualityControl:
                                 rel_path = f"../../Eddy_correction/{self.subject_id}/{eddy_session}/{quote(img_name)}"
                             else:
                                 rel_path = f"../../Eddy_correction/{self.subject_id}/{quote(img_name)}"
-                            image_links.append(f'<a href="{rel_path}" target="_blank" class="image-preview"><img src="{rel_path}" style="max-width:300px; height:auto;" alt="{img_name}" title="Click to view full size"></a>')
+                            image_links.append(f'<div class="image-preview" onclick="openModal(\'{rel_path}\', \'{img_name}\')"><img src="{rel_path}" style="max-width:300px; height:auto;" alt="{img_name}" title="Click to view full size"></div>')
                         if image_links:
                             html_content += f"""
                             <tr><td>&nbsp;&nbsp;QC Images</td><td>{'<br>'.join(image_links)}</td></tr>"""
@@ -842,7 +887,7 @@ class DTIQualityControl:
                                 rel_path = f"../../Dtifit/{self.subject_id}/{dtifit_session}/{quote(img_name)}"
                             else:
                                 rel_path = f"../../Dtifit/{self.subject_id}/{quote(img_name)}"
-                            image_links.append(f'<a href="{rel_path}" target="_blank" class="image-preview"><img src="{rel_path}" style="max-width:300px; height:auto;" alt="{img_name}" title="Click to view full size"></a>')
+                            image_links.append(f'<div class="image-preview" onclick="openModal(\'{rel_path}\', \'{img_name}\')"><img src="{rel_path}" style="max-width:300px; height:auto;" alt="{img_name}" title="Click to view full size"></div>')
                         if image_links:
                             html_content += f"""
                             <tr><td>&nbsp;&nbsp;QC Images</td><td>{'<br>'.join(image_links)}</td></tr>"""
@@ -855,7 +900,50 @@ class DTIQualityControl:
         html_content += """
             </table>
         
-            <p><em>Generated: """ + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + """</em></p>
+            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #7f8c8d;">
+                <p><em>Generated: """ + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + """</em></p>
+                <p>Design & Develop by <a href="https://stai.stanford.edu/" style="color: #3498db;">Stanford Translational AI (STAI)</a></p>
+            </div>
+            </div>
+
+            <!-- Modal for image popup -->
+            <div id="imageModal" class="modal">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <img class="modal-content" id="modalImage">
+                <div id="modalCaption" class="modal-caption"></div>
+            </div>
+
+            <script>
+                function openModal(src, alt) {
+                    const modal = document.getElementById('imageModal');
+                    const modalImg = document.getElementById('modalImage');
+                    const modalCaption = document.getElementById('modalCaption');
+                    modal.style.display = 'block';
+                    modalImg.src = src;
+                    modalImg.alt = alt;
+                    modalCaption.innerHTML = alt;
+                }
+
+                function closeModal() {
+                    const modal = document.getElementById('imageModal');
+                    modal.style.display = 'none';
+                }
+
+                // Close modal when clicking outside the image
+                window.onclick = function(event) {
+                    const modal = document.getElementById('imageModal');
+                    if (event.target == modal) {
+                        modal.style.display = 'none';
+                    }
+                }
+
+                // Close modal with ESC key
+                document.addEventListener('keydown', function(event) {
+                    if (event.key === 'Escape') {
+                        closeModal();
+                    }
+                });
+            </script>
         </body>
         </html>
         """
@@ -886,34 +974,58 @@ class DTIQualityControl:
                 
             df = pd.read_csv(all_subjects_csv)
             
-            # Simple HTML template
+            # Simple HTML template with modern styling
             html_content = f"""
             <!DOCTYPE html>
-            <html>
+            <html lang="en">
             <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>DTI QC - All Subjects Summary</title>
                 <style>
-                    body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                    h1 {{ color: #2c3e50; }}
-                    table {{ border-collapse: collapse; width: 100%; }}
-                    th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-                    th {{ background-color: #f2f2f2; }}
-                    .pass {{ color: green; font-weight: bold; }}
-                    .warning {{ color: orange; font-weight: bold; }}
-                    .fail {{ color: red; font-weight: bold; }}
-                    .stats {{ background: #f9f9f9; padding: 15px; margin: 20px 0; }}
+                    body {{ font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }}
+                    .container {{ max-width: 1400px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                    h1 {{ color: #2c3e50; text-align: center; border-bottom: 3px solid #3498db; padding-bottom: 10px; }}
+                    h2 {{ color: #34495e; border-left: 4px solid #3498db; padding-left: 15px; margin-top: 30px; }}
+                    table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+                    th, td {{ padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }}
+                    th {{ background-color: #3498db; color: white; }}
+                    tr:nth-child(even) {{ background-color: #f2f2f2; }}
+                    tr:hover {{ background-color: #e8f4f8; }}
+                    .pass {{ color: #27ae60; font-weight: bold; }}
+                    .warning {{ color: #f39c12; font-weight: bold; }}
+                    .fail {{ color: #e74c3c; font-weight: bold; }}
+                    .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }}
+                    .stat-card {{ background: #ecf0f1; padding: 15px; border-radius: 8px; text-align: center; border-left: 4px solid #3498db; }}
+                    .stat-card h3 {{ margin-top: 0; color: #2c3e50; font-size: 1.1em; }}
+                    .stat-value {{ font-size: 2em; font-weight: bold; color: #3498db; }}
+                    a {{ color: #3498db; text-decoration: none; }}
+                    a:hover {{ text-decoration: underline; }}
                 </style>
             </head>
             <body>
-                <h1>DTI Quality Control - Summary Report</h1>
-                <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                <div class="container">
+                    <h1>DTI Quality Control - Summary Report</h1>
+                    <h2 style="text-align: center; color: #34495e; border: none; padding: 0; margin: 10px 0;">{DATASET_NAME}</h2>
+                    <p style="text-align: center; color: #7f8c8d;">Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
                 
-                <div class="stats">
-                    <h2>Overall Statistics</h2>
-                    <p><strong>Total Subjects:</strong> {len(df)}</p>
-                    <p><strong>Passed:</strong> {len(df[df['overall_status'] == 'PASS'])}</p>
-                    <p><strong>Warnings:</strong> {len(df[df['overall_status'] == 'WARNING'])}</p>
-                    <p><strong>Failed:</strong> {len(df[df['overall_status'] == 'FAIL'])}</p>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Subjects</h3>
+                        <div class="stat-value">{len(df)}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Passed</h3>
+                        <div class="stat-value" style="color: #27ae60;">{len(df[df['overall_status'] == 'PASS'])}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Warnings</h3>
+                        <div class="stat-value" style="color: #f39c12;">{len(df[df['overall_status'] == 'WARNING'])}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Failed</h3>
+                        <div class="stat-value" style="color: #e74c3c;">{len(df[df['overall_status'] == 'FAIL'])}</div>
+                    </div>
                 </div>
                 
                 <h2>Subjects Summary</h2>
@@ -975,6 +1087,11 @@ class DTIQualityControl:
             
             html_content += """
                 </table>
+                
+                <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #7f8c8d;">
+                    <p>Design & Develop by <a href="https://stai.stanford.edu/" style="color: #3498db;">Stanford Translational AI (STAI)</a></p>
+                </div>
+                </div>
             </body>
             </html>
             """
