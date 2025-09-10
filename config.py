@@ -50,6 +50,9 @@ def setup_fsl_env():
 # ------------------------------
 # Common/Shared Settings
 # ------------------------------
+# Dataset Information
+DATASET_NAME = "OpenNeuro ds004215"
+
 # Input/Output directories
 INPUT_DIR = "/input/path"
 INPUT_SUBDIR = ""
