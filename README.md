@@ -32,7 +32,7 @@ Contains settings for:
 
 ## Processing Steps
 
-### 1. Topup Correction — `b0_correction.py`
+### 1. Topup Correction, `b0_correction.py`
 Correct susceptibility-induced distortions using FSL TOPUP (Andersson et al., 2003).  
 This step estimates a field map from images with opposite phase-encoding directions and applies it to unwarp distorted diffusion volumes.  
 
@@ -42,7 +42,7 @@ This step estimates a field map from images with opposite phase-encoding directi
 
 ---
 
-### 2. Eddy Current and Motion Correction — `process_eddy.py`
+### 2. Eddy Current and Motion Correction, `process_eddy.py`
 Correct distortions caused by eddy currents and subject motion using FSL EDDY (Andersson & Sotiropoulos, 2016).  
 Includes slice-to-volume correction and outlier replacement.  
 
@@ -58,7 +58,7 @@ Steps performed:
 
 ---
 
-### 3. Brain Extraction — `brain_extraction.py`
+### 3. Brain Extraction, `brain_extraction.py`
 Removes non-brain tissue from diffusion MRI data using FSL BET 
 (Smith, 2002). This step performs skull stripping and generates 
 quality control (QC) images and summary files to validate 
@@ -77,7 +77,7 @@ Steps performed:
 
 ---
 
-### 4. Merging of Acquisitions — `reg_within_fsl.py`
+### 4. Merging of Acquisitions, `reg_within_fsl.py`
 
 Aligns and merges multiple diffusion MRI runs using FSL FLIRT in case a session is broken down into multiple acquisitions.
 Rigid transformations are estimated between B0 reference images,
@@ -92,7 +92,7 @@ Steps performed:
 
 ---
 
-### 5. Registration to MNI Space — `run_reg_mni.py`
+### 5. Registration to MNI Space, `run_reg_mni.py`
 Registers diffusion images to the MNI152 template using a
 two-step approach with FSL FLIRT (rigid + affine). Corresponding
 b-vectors are rotated to preserve orientation
@@ -109,7 +109,7 @@ Steps performed:
 
 ---
 
-### 6. Diffusion Tensor Model Fitting — `run_dtifit_dipy.py`
+### 6. Diffusion Tensor Model Fitting, `run_dtifit_dipy.py`
 Fits a diffusion tensor model using DIPY (Garyfallidis et al., 2014).
 This script takes preprocessed diffusion MRI data (DWI, bvec, bval, mask)
 and outputs standard DTI-derived measures including fractional anisotropy (FA),
@@ -136,7 +136,7 @@ Steps performed:
 
 ---
 
-### 7. Quality Control of Final Outputs — `run_final_qc.py`
+### 7. Quality Control of Final Outputs, `run_final_qc.py`
 Performs automated, session-aware QC checks on diffusion pipeline outputs.
 This script validates file existence and assesses registration quality using
 overlap metrics (Dice) between warped images and the MNI template. Results are
@@ -144,8 +144,8 @@ written to per-session CSV reports for downstream review.
 
 What it checks:
 1) File existence validation (key outputs, matrices, QC images)
-2) Registration to MNI (rigid + affine) — Dice coefficient vs. MNI template
-3) Within-session registration (if NUM_SCANS_PER_SESSION > 1) — Dice on b0-to-b0
+2) Registration to MNI (rigid + affine), Dice coefficient vs. MNI template
+3) Within-session registration (if NUM_SCANS_PER_SESSION > 1), Dice on b0-to-b0
 4) Session discovery and per-session reporting
 5) Structured logging to file + console
 
@@ -167,7 +167,7 @@ Wells, W.M., Jolesz, F.A., & Kikinis, R. (2004), 11(2), 178–189.
 
 ---
 
-### 8. Generation of HTML QC Reports — `dti_qc.py`
+### 8. Generation of HTML QC Reports, `dti_qc.py`
 Generates automated, subject-level QC reports that summarize and visualize the
 outputs of the DTI preprocessing pipeline. This script *reads existing* QC CSVs
 and QC images from each step and compiles them into a clickable HTML report 
@@ -175,11 +175,11 @@ along with CSV/JSON summaries. If FA/MD maps are available, it also computes
 basic statistics.
 
 Summarized in the report:
-- Raw vs. corrected B0 (Topup) — QC images (before/after)
-- Eddy-corrected vs. uncorrected volumes — QC images
-- Brain extraction evaluation — mask overlays + brain volume (mL)
-- FA and color-FA maps — quick-look thumbnails and stats
-- Registration metrics — Dice coefficients for within-session & MNI steps
+- Raw vs. corrected B0 (Topup), QC images (before/after)
+- Eddy-corrected vs. uncorrected volumes, QC images
+- Brain extraction evaluation, mask overlays + brain volume (mL)
+- FA and color-FA maps, quick-look thumbnails and stats
+- Registration metrics, Dice coefficients for within-session & MNI steps
 
 Inputs (read-only):
 - Existing QC CSVs (e.g., `file_existance.csv`,
@@ -212,22 +212,22 @@ Dice for overlap validation: Zou, K.H., et al. (2004). Academic Radiology, 11(2)
 
 ---
 
-### 9. Utility Functions — `utilities.py`
+### 9. Utility Functions, `utilities.py`
 
 Provides supporting functions used across the diffusion MRI preprocessing pipeline.
 
 
 Key functionalities:
 
-- Session Detection — automatically identifies session folders (e.g., YYYY-MM-DD).
+- Session Detection, automatically identifies session folders (e.g., YYYY-MM-DD).
 
-- File Search & Matching — robust pattern matching to locate NIfTI, bvec/bval, and transform files even when filenames differ slightly.
+- File Search & Matching, robust pattern matching to locate NIfTI, bvec/bval, and transform files even when filenames differ slightly.
 
-- NIfTI Handling — inspects image dimensions and trims odd dimensions to ensure compatibility with FSL/ANTs.
+- NIfTI Handling, inspects image dimensions and trims odd dimensions to ensure compatibility with FSL/ANTs.
 
-- QC Image Generation — creates slice-wise PNG snapshots for quick quality checks.
+- QC Image Generation, creates slice-wise PNG snapshots for quick quality checks.
 
-- Logging Utilities — initializes console and file logging with safe fallbacks if write access is restricted.
+- Logging Utilities, initializes console and file logging with safe fallbacks if write access is restricted.
 
 These utilities are imported by other scripts (e.g., b0_correction.py, process_eddy.py, brain_extraction.py) to ensure consistency and avoid code duplication.
 
