@@ -4,6 +4,7 @@
 
 Developed at the **Stanford Translational AI Lab (STAI)**  
 **Lead Developer:** Mohammad H. Abbasi, Gustavo Chau
+
 **Supervisor:** Ehsan Adeli  
 
 This repository contains Python code to perform preprocessing of diffusion MRI (dMRI) data.  
