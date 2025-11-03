@@ -296,3 +296,31 @@ Check outputs
 - Preprocessed data → <OUTPUT_DIR> (set in config.py)
 - QC results → <OUTPUT_DIR>/QC/
 - Open <OUTPUT_DIR>/QC/DTI_QC_Summary.html for an overview across all subjects
+  
+---
+
+## 📘 Citation
+*(short version)*  
+> Abbasi, M.H., & Chau, G. (2025). *DTI Processing Pipeline.* Zenodo.  
+> DOI: [10.5281/zenodo.17503171](https://doi.org/10.5281/zenodo.17503171)
+
+---
+
+## 🧾 How to Cite This Work
+If you use this pipeline in your research, please cite it as follows:
+
+> **Abbasi, M.H.**, & **Chau, G.** (2025). *DTI Processing Pipeline: A reproducible framework for diffusion MRI preprocessing, tensor fitting, and quality control using MRtrix3 and FSL.*  
+> Stanford Translational AI Lab, Stanford University. Zenodo.  
+> [https://doi.org/10.5281/zenodo.17503171](https://doi.org/10.5281/zenodo.17503171)
+
+```bibtex
+@software{abbasi2025dti,
+  author       = {Mohammad Hassan Abbasi and Gustavo Chau},
+  title        = {DTI Processing Pipeline: A reproducible framework for diffusion MRI preprocessing, tensor fitting, and quality control using MRtrix3 and FSL},
+  year         = {2025},
+  institution  = {Stanford Translational AI Lab, Stanford University},
+  publisher    = {Zenodo},
+  doi          = {10.5281/zenodo.17503171},
+  url          = {https://doi.org/10.5281/zenodo.17503171}
+}
+
