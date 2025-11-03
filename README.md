@@ -1,5 +1,11 @@
 # Diffusion MRI Preprocessing Pipeline
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17503171.svg)](https://doi.org/10.5281/zenodo.17503171)
+
+Developed at the **Stanford Translational AI Lab (STAI)**  
+**Lead Developer:** Mohammad H. Abbasi, Gustavo Chau
+**Supervisor:** Ehsan Adeli  
+
 This repository contains Python code to perform preprocessing of diffusion MRI (dMRI) data.  
 At present, the only distortion correction supported is **top-up correction**, which requires an additional reversed polarity acquisition.  
 
