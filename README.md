@@ -301,7 +301,7 @@ Check outputs
 
 ## 📘 Citation
 *(short version)*  
-> Abbasi, M.H., & Chau, G. (2025). *DTI Processing Pipeline.* Zenodo.  
+> Abbasi, M.H., & Chau, G. & Adeli, E (2025). *DTI Processing Pipeline.* Zenodo.  
 > DOI: [10.5281/zenodo.17503171](https://doi.org/10.5281/zenodo.17503171)
 
 ---
