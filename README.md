@@ -309,13 +309,13 @@ Check outputs
 ## 🧾 How to Cite This Work
 If you use this pipeline in your research, please cite it as follows:
 
-> **Abbasi, M.H.**, & **Chau, G.** (2025). *DTI Processing Pipeline: A reproducible framework for diffusion MRI preprocessing, tensor fitting, and quality control using MRtrix3 and FSL.*  
+> **Abbasi, M.H.**, **Chau, G.**, & **Adeli, E** (2025). *DTI Processing Pipeline: A reproducible framework for diffusion MRI preprocessing, tensor fitting, and quality control using MRtrix3 and FSL.*  
 > Stanford Translational AI Lab, Stanford University. Zenodo.  
 > [https://doi.org/10.5281/zenodo.17503171](https://doi.org/10.5281/zenodo.17503171)
 
 ```bibtex
 @software{abbasi2025dti,
-  author       = {Mohammad Hassan Abbasi and Gustavo Chau},
+  author       = {MohammadHassan Abbasi,  Ehsan Adeli, and Gustavo Chau},
   title        = {DTI Processing Pipeline: A reproducible framework for diffusion MRI preprocessing, tensor fitting, and quality control using MRtrix3 and FSL},
   year         = {2025},
   institution  = {Stanford Translational AI Lab, Stanford University},
